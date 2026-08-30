@@ -1,0 +1,156 @@
+
+> # Random Forest --------------------------------------------------------
+> 
+> set.seed(123)
+> sample <- sample(c(TRUE, FALSE), nrow(df_model), replace=TRUE, prob=c(0.7,0.3))
+> train  <- df_model[sample, ]
+> test   <- df_model[!sample, ]
+> dim(train)
+[1] 75 20
+> dim(test)
+[1] 31 20
+> summary(train$crise)
+ 0  1 
+56 19 
+> summary(test$crise)
+ 0  1 
+25  6 
+> set.seed(123)
+> rf_weighted <- ranger(
++   formula       = crise ~ ., 
++   data          = train, 
++   num.trees     = 180, 
++   importance    = "permutation",   
++   write.forest  = TRUE
++ 
++ )
+> 
+> print(rf_weighted)
+Ranger result
+
+Call:
+ ranger(formula = crise ~ ., data = train, num.trees = 180, importance = "permutation",      write.forest = TRUE) 
+
+Type:                             Classification 
+Number of trees:                  180 
+Sample size:                      75 
+Number of independent variables:  19 
+Mtry:                             4 
+Target node size:                 1 
+Variable importance mode:         permutation 
+Splitrule:                        gini 
+OOB prediction error:             12.00 % 
+> # Prédictions sur le test set
+> pred_test <- predict(rf_weighted, data = test)
+> 
+> # Matrice de confusion
+> conf_matrix <- table(Predicted = pred_test$predictions, Actual = test$crise)
+> print(conf_matrix)
+         Actual
+Predicted  0  1
+        0 23  0
+        1  2  6
+> 
+> # Accuracy sur le test set
+> accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+> cat("Accuracy test set:", round(accuracy, 3))
+Accuracy test set: 0.935
+> library(pROC)
+> 
+> # Obtenir les probabilités (pas juste la classe prédite)
+> rf_prob <- ranger(
++     formula      = crise ~ .,
++     data         = train,
++     num.trees    = 180,
++     importance   = "permutation",
++     probability  = TRUE,   # <-- clé
++     write.forest = TRUE
++ )
+> 
+> # Prédire les probabilités sur le test set
+> pred_prob <- predict(rf_prob, data = test)$predictions
+> 
+> # AUC-ROC (colonne correspondant à la modalité "crise = 1")
+> roc_obj <- roc(test$crise, pred_prob[, 2])
+Setting levels: control = 0, case = 1
+Setting direction: controls < cases
+> cat("AUC-ROC:", round(auc(roc_obj), 3))
+AUC-ROC: 1> plot(roc_obj, main = "Courbe ROC - Random Forest")
+> library(caret)
+> 
+> confusionMatrix(pred_test$predictions, test$crise, positive = "1")
+Confusion Matrix and Statistics
+
+          Reference
+Prediction  0  1
+         0 23  0
+         1  2  6
+                                          
+               Accuracy : 0.9355          
+                 95% CI : (0.7858, 0.9921)
+    No Information Rate : 0.8065          
+    P-Value [Acc > NIR] : 0.04475         
+                                          
+                  Kappa : 0.8166          
+                                          
+ Mcnemar's Test P-Value : 0.47950         
+                                          
+            Sensitivity : 1.0000          
+            Specificity : 0.9200          
+         Pos Pred Value : 0.7500          
+         Neg Pred Value : 1.0000          
+             Prevalence : 0.1935          
+         Detection Rate : 0.1935          
+   Detection Prevalence : 0.2581          
+      Balanced Accuracy : 0.9600          
+                                          
+       'Positive' Class : 1               
+                                          
+> # Te donnera : Sensitivity (recall), Specificity, Precision, F1
+> rf_weighted2 <- ranger(
++     formula      = crise ~ .,
++     data         = train,
++     num.trees    = 180,
++     importance   = "permutation",
++     probability  = TRUE,
++     class.weights = c("0" = 1, "1" = 5),  # à ajuster selon le déséquilibre
++     write.forest = TRUE
++ )
+> imp_df2 <- data.frame(
++     var = names(rf_weighted2$variable.importance),
++     imp = rf_weighted2$variable.importance
++ ) %>%
++     mutate(imp_pos = pmax(imp, 0)) %>%
++     mutate(weight = imp_pos / sum(imp_pos)) %>%
++     arrange(desc(weight))
+> View(imp_df2)
+> imp_df <- data.frame(
++   var = names(rf_weighted$variable.importance),
++   imp = rf_weighted$variable.importance
++ ) %>%
++   mutate(imp_pos = pmax(imp, 0)) %>%
++   mutate(weight = imp_pos / sum(imp_pos)) %>%
++   arrange(desc(weight))
+> View(imp_df)
+> library(pROC)
+> 
+> # Obtenir les probabilités (pas juste la classe prédite)
+> rf_prob <- ranger(
++     formula      = crise ~ .,
++     data         = train,
++     num.trees    = 180,
++     importance   = "permutation",
++     probability  = TRUE,   # <-- clé
++     write.forest = TRUE
++ )
+> 
+> # Prédire les probabilités sur le test set
+> pred_prob <- predict(rf_prob, data = test)$predictions
+> 
+> # AUC-ROC (colonne correspondant à la modalité "crise = 1")
+> roc_obj <- roc(test$crise, pred_prob[, 2])
+Setting levels: control = 0, case = 1
+Setting direction: controls < cases
+> cat("AUC-ROC:", round(auc(roc_obj), 3))
+AUC-ROC: 1> plot(roc_obj, main = "Courbe ROC - Random Forest")
+> 
