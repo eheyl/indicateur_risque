@@ -482,7 +482,7 @@ La lecture d'ensemble est double. Le relâchement fonctionne, au sens où il sou
 
 \begin{table}[htbp]
 \centering
-\caption{Paires de variables corrélées à plus de 0,8 et facteurs d'inflation de la variance, avant et après traitement}
+\caption{Paires de variables corrélées à 0,8 ou plus en valeur absolue, au seuil d'arrondi, et facteurs d'inflation de la variance, avant et après traitement}
 \label{tab:multico}
 \small
 \begin{tabular}{llcc}
@@ -518,7 +518,7 @@ Spread OAT--Bund & 6,9 & 6,4 \\
 \bottomrule
 \end{tabular}
 \begin{flushleft}\footnotesize
-\emph{Note~:} corrélations et VIF calculés sur 2009-T1 à 2025-T2 (66 trimestres), le \emph{spread High Yield} étant exprimé net du \emph{spread investment grade} comme dans le script. Les VIF sont ceux de la régression auxiliaire du script \texttt{multico.R}, qui exclut les deux taux de croissance du crédit et prend la dette des ménages comme variable dépendante~; les variables dont le VIF est inférieur à 5 dans les deux configurations ne sont pas reportées. [Vérifier les valeurs sur les données brutes utilisées lors du test initial.] \emph{Source~:} calculs de l'auteure.
+\emph{Note~:} corrélations et VIF calculés sur 2009-T1 à 2025-T2 (66 trimestres), le \emph{spread High Yield} étant exprimé net du \emph{spread investment grade} comme dans le script. Les VIF sont ceux de la régression auxiliaire du script \texttt{multico.R}, qui exclut les deux taux de croissance du crédit et prend la dette des ménages comme variable dépendante~; les variables dont le VIF est inférieur à 5 dans les deux configurations ne sont pas reportées. La paire formée par les contraintes de crédit des SNF et le taux de l'OAT à dix ans, à $-0{,}796$, est reportée pour sa proximité immédiate du seuil. \emph{Source~:} calculs de l'auteure.
 \end{flushleft}
 \end{table}
 
