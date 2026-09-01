@@ -1,0 +1,898 @@
+% ============================================================
+% Mémoire d'alternance — M2 Analyse et Politique Économique
+% VERSION - 01/09/2026
+% Les passages entre crochets [xxx] sont à compléter par l'auteure.
+% Compilation : pdfLaTeX (PLMlatex) — biblatex avec moteur bibtex (biblio.bib)
+% Chaîne : pdflatex -> bibtex -> pdflatex -> pdflatex (automatique sur PLMlatex)
+% Clés biblio à ajouter dans biblio.bib (entrées proposées en fin de fichier) :
+% roberts2017, tashman2000, lopezdeprado2018, wright2017, chen2016,
+% gregorutti2017, couaillier2018, schuler2015, stremmel2015, aikman2015,
+% runstler2018, strohsal2019.
+% ============================================================
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath, amssymb}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{csquotes}
+\usepackage[backend=bibtex,style=authoryear,maxcitenames=2,maxbibnames=99,sorting=nyt,giveninits=true,uniquename=false,uniquelist=false]{biblatex}
+\addbibresource{biblio.bib}
+\usepackage[hidelinks]{hyperref}
+% cleveref retiré : références écrites explicitement (chapitre~\ref{...}, équation~\eqref{...})
+\usepackage[toc,page,title,titletoc]{appendix}
+\renewcommand{\appendixtocname}{Annexes}
+\renewcommand{\appendixpagename}{Annexes}
+\usepackage{fancyhdr}
+\renewcommand{\chaptermark}[1]{\markboth{\chaptername\ \thechapter}{}}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small Mémoire d'alternance — M2 APE}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\auteure}{Eva HEYL}
+\newcommand{\titrememoire}{Mesurer les vulnérabilités financières françaises~: construction d'un indicateur composite pondéré par apprentissage automatique pour la calibration du coussin de fonds propres contracyclique}
+\newcommand{\anneeuniv}{2025--2026}
+\newcommand{\directeur}{Étienne Lehmann, directeur de mémoire}
+\newcommand{\maitre}{François Belle-Larant, maître d'alternance, DG Trésor}
+
+\begin{document}
+
+% ============================================================
+% PAGE DE GARDE
+% ============================================================
+\begin{titlepage}
+    \centering
+    \begin{minipage}[c]{0.48\textwidth}
+        \centering
+        \includegraphics[width=0.9\linewidth]{logo_assas.png}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.38\textwidth}
+        \centering
+        \includegraphics[width=0.75\linewidth]{logo_dgt.jpg}
+    \end{minipage}
+
+    \vspace{2.5cm}
+    {\large Master 2 Analyse et Politique Économique — Parcours Recherche\\[0.2cm]
+    Mémoire d'alternance\par}
+    \vspace{1.8cm}
+    {\LARGE\bfseries \titrememoire\par}
+    \vspace{2.2cm}
+    {\Large \auteure\par}
+    \vspace{0.8cm}
+    {\large Alternance effectuée à la Direction générale du Trésor\\
+    Pôle d'analyse économique du secteur financier\par}
+    \vfill
+    \begin{tabular}{ll}
+        Directeur de mémoire~: & \directeur\\[0.2cm]
+        Maître d'alternance~: & \maitre\\
+    \end{tabular}
+    \vspace{1.2cm}
+    \\
+    {\large Année universitaire \anneeuniv\par}
+\end{titlepage}
+
+% ============================================================
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+[À rédiger en dernier.]
+
+\chapter*{Avertissement}
+\addcontentsline{toc}{chapter}{Avertissement}
+Ce mémoire s'appuie sur des travaux réalisés dans le cadre d'une alternance à la Direction générale du Trésor, dont une partie a fait l'objet d'une publication (Trésor-Éco n\up{o}~389, juin 2026). Les analyses, interprétations et éventuelles erreurs contenues dans ce document n'engagent que son auteure et ne reflètent pas nécessairement la position de la Direction générale du Trésor ni du ministère de l'Économie, des Finances et de la Souveraineté industrielle, énergétique et numérique.
+
+Le modèle de langage Claude Fable 5 (Anthropic) a été utilisé pour la structuration des idées et la génération de certaines parties du code. Les idées originelles, les choix méthodologiques et les interprétations sont ceux de l'auteure, sous la supervision de ses encadrants au fil de leurs revues successives lors de la construction de l'indicateur.
+
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+Ce mémoire présente la construction d'un indicateur composite de vulnérabilités du système financier français, développé à la Direction générale du Trésor pour enrichir le suivi de la stabilité financière et éclairer la calibration du coussin de fonds propres contracyclique (CCyB). L'indicateur agrège dix-sept variables macrofinancières en cinq catégories, sélectionnées après un diagnostic de multicolinéarité, pondérées à partir de l'importance de permutation d'un modèle de forêt aléatoire entraîné sur les épisodes de tensions financières identifiés par le Comité européen du risque systémique. L'indicateur restitue les grands épisodes de vulnérabilité de la sphère financière française depuis 2009 et fournit un diagnostic décomposable du niveau courant de risque. Une batterie de tests de robustesse portant sur la séparation de l'échantillon d'apprentissage établit que la hiérarchie des pondérations et la datation des épisodes sont stables d'une spécification à l'autre, tandis que la performance de classification du modèle sous-jacent ne l'est pas, ce qui fonde la lecture de l'indicateur comme outil de diagnostic et non de prévision. Le mémoire propose ensuite une lecture critique du protocole au regard des enseignements du M2, portant sur la validation sur données temporellement dépendantes, le biais de l'importance de permutation sous prédicteurs corrélés, la rareté des épisodes de crise et les contraintes de données en temps réel. Il en déduit des pistes d'amélioration mobilisables dans le cadre opérationnel de la direction.
+\vspace{0.5cm}
+
+\noindent\textbf{Mots-clés~:} politique macroprudentielle~; coussin de fonds propres contracyclique~; vulnérabilités financières~; indicateur composite~; forêt aléatoire.
+
+\tableofcontents
+
+% ============================================================
+% INTRODUCTION
+% ============================================================
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+\markboth{Introduction}{}
+
+La situation macroprudentielle française présente en 2026 une configuration singulière. L'écart du ratio crédit sur PIB à sa tendance de long terme, ancre quantitative du dispositif bâlois pour la fixation du coussin de fonds propres contracyclique, est négatif~; la règle de référence commanderait donc un coussin nul. Le Haut Conseil de stabilité financière (HCSF) maintient pourtant ce coussin à 1~\% des actifs pondérés par les risques. Ce paradoxe apparent n'est pas une anomalie, mais reflète la doctrine du «~pouvoir discrétionnaire orienté~», selon laquelle l'autorité macroprudentielle s'appuie sur un signal quantitatif de référence, tout en mobilisant un ensemble plus large d'indicateurs et un jugement d'experts pour fonder ses décisions. L'indicateur de vulnérabilités financières présenté ici a été pensé comme une mesure synthétique, comparable dans le temps et décomposable, du niveau de vulnérabilité du système financier.
+
+L'agrégation de variables de différentes natures représente un premier enjeu. D'une part, les vulnérabilités financières sont multidimensionnelles~; l'endettement des agents privés, les conditions de financement bancaire et de marché, les valorisations immobilières et boursières évoluent selon des dynamiques propres, parfois divergentes, dont aucune ne résume à elle seule l'état du système. D'autre part, l'agrégation de ces dimensions en un score unique suppose de trancher la question du poids à accorder à chaque variable, choix dont dépend directement le diagnostic. La littérature des indicateurs avancés de crise fournit des repères sur les variables pertinentes~; la pondération, elle, repose selon les indicateurs sur des choix posés a priori, pondération égale ou jugement d'expert, ou sur la capacité de signal de chaque variable prise isolément. Le travail mené durant l'alternance retient une troisième voie en reliant les poids aux données~; ils sont déduits de la capacité de chaque variable à prédire les épisodes de tensions financières passés, mesurée par l'importance de permutation d'un modèle de forêt aléatoire, qui tient compte de l'ensemble des variables simultanément.
+
+Ce travail a été réalisé au sein du pôle d'analyse économique du secteur financier (PAESF) de la Direction générale du Trésor, qui assure avec la Banque de France le secrétariat du HCSF et conseille le ministre chargé de l'économie, président du Haut Conseil. Le PAESF, pôle quantitatif du service du financement de l'économie, est en charge des questions relatives à la stabilité financière. Chacun de ses adjoints suit l'un des grands acteurs du financement de l'économie, les ménages, les entreprises, les banques, les marchés et les acteurs financiers non bancaires. Le pôle contribue à ce titre à la préparation des travaux macroprudentiels et au suivi continu des risques pesant sur le système financier. La mission développée dans ce mémoire répond à une commande opérationnelle précise, celle de doter la direction d'un indicateur synthétique de vulnérabilités mobilisable en continu, y compris en dehors du cadre des travaux du HCSF. Cet indicateur a par ailleurs fait l'objet d'une publication sous la forme d'un Trésor-Éco (n\up{o}~389, juin 2026). L'environnement de travail, l'organisation de la direction et le périmètre complet des missions effectuées durant l'alternance sont présentés en annexe~\ref{annexe:mission}.
+
+Le mémoire pose la question de recherche suivante. \emph{Dans quelle mesure un indicateur composite dont les pondérations sont issues d'un modèle d'apprentissage automatique peut-il fournir un diagnostic robuste des vulnérabilités financières françaises~?}
+
+Le mémoire est organisé en quatre chapitres. Le premier situe le travail dans son double cadre, institutionnel et académique~; il présente la politique macroprudentielle et son instrument contracyclique, puis passe en revue les trois familles d'approches de la mesure des vulnérabilités financières et les apports de l'apprentissage automatique en la matière. Le deuxième chapitre expose les données et la méthodologie de construction de l'indicateur. Le troisième en présente les résultats, à savoir la performance du modèle de pondération, une relecture des épisodes de la période 2009--2026, ainsi que des tests de robustesse portant sur la spécification de l'indicateur, sur le traitement des données non encore disponibles en temps réel et, de manière systématique, sur la séparation de l'échantillon d'apprentissage. Le quatrième chapitre, enfin, procède à la prise de recul critique~; il confronte le protocole opérationnel aux exigences de la formation, documente les difficultés techniques rencontrées et les arbitrages effectués, et propose des extensions.
+
+% ============================================================
+% CHAPITRE 1
+% ============================================================
+\chapter{Politique macroprudentielle et mesure des vulnérabilités~: cadre et littérature}
+\label{chap:litterature}
+
+\section{Le risque systémique et la réponse macroprudentielle}
+
+Le risque systémique désigne la probabilité qu'une perturbation affectant un acteur ou un segment du système financier se propage à l'ensemble de celui-ci, jusqu'à compromettre le financement de l'économie réelle. La crise financière de 2007--2008 en a fourni l'illustration paradigmatique. En effet, la faillite d'établissements individuels, amplifiée par les interconnexions du système, s'est muée en contraction généralisée du crédit et de l'activité. L'approche macroprudentielle, dont \textcite{crockett2000} et \textcite{borio2003} ont posé les fondements conceptuels avant la crise, part du constat que la solidité de chaque institution prise isolément ne garantit pas celle du système, le risque systémique ne se résumant pas à la somme des risques individuels. Elle distingue classiquement deux dimensions, l'une temporelle, liée à la procyclicité de la prise de risque au fil du cycle financier, l'autre transversale, liée à la concentration et aux interconnexions à un instant donné.
+
+Cette grille d'analyse s'est traduite, après 2008, en cadre réglementaire. Au niveau international, les accords de Bâle~III \parencite{bcbs2010} introduisent des exigences de fonds propres renforcées et des instruments proprement macroprudentiels~; au niveau européen, le Comité européen du risque systémique (CERS/ESRB), créé en 2010, surveille le risque à l'échelle de l'Union, tandis que la directive CRD~IV transpose les instruments bâlois en droit européen. En France, le Haut Conseil de stabilité financière, institué en 2013, est l'autorité macroprudentielle nationale. Il est présidé par le ministre chargé de l'économie et réunit le gouverneur de la Banque de France, qui dispose du monopole d'initiative, les présidents des autorités de supervision ainsi que trois personnalités qualifiées nommées par le président du Sénat, le président de l'Assemblée nationale et le ministre chargé de l'économie. Le Haut Conseil est chargé d'exercer la surveillance du système financier dans son ensemble afin d'en préserver la stabilité. Son secrétariat est assuré conjointement par la Banque de France et la Direction générale du Trésor. L'histoire et l'organisation de la direction sont détaillées en annexe~\ref{annexe:mission}.
+
+Le HCSF fonde ses décisions sur le principe du «~pouvoir discrétionnaire orienté~», selon lequel un ensemble d'indicateurs quantitatifs oriente le jugement sans le mécaniser. Cette doctrine, inscrite dans la recommandation ESRB/2014/1, est au c\oe ur du présent mémoire, puisqu'elle définit le statut de l'outil construit, c'est-à-dire un instrument d'aide au diagnostic, non une règle de décision.
+
+\section{Le coussin contracyclique et la place d'un indicateur de vulnérabilités dans la décision}
+\label{sec:ccyb}
+
+Le coussin de fonds propres contracyclique (CCyB) est l'instrument central de la dimension temporelle de la politique macroprudentielle. Son principe est de faire constituer aux banques une réserve de fonds propres supplémentaire en phase d'expansion du cycle financier, réserve qui peut être libérée en cas de retournement pour soutenir la capacité de prêt. Son pilotage est asymétrique, c'est-à-dire que les établissements disposent de douze mois pour se conformer à une hausse, tandis qu'une baisse s'applique immédiatement. En France, le HCSF a activé le coussin à 0,25~\% en 2018, l'a porté à 0,5~\% en 2019, l'a ramené à zéro en mars 2020 au déclenchement de la crise sanitaire, puis l'a reconstitué par étapes jusqu'à 1~\% depuis janvier 2024, son niveau actuel. Ce qui distingue le CCyB des autres coussins de fonds propres est sa libérabilité. Les banques sont réticentes à entamer des coussins non relâchés, du fait des restrictions de distribution et du stigmate qu'emporterait le franchissement du seuil \parencite{bcbs2022usability}, et celles qui sont proches de leurs exigences réduisent leur offre de crédit davantage que les autres \parencite{couaillier2021}. La décision de constituer, de maintenir ou de relâcher le coussin repose donc sur une appréciation du niveau de risque cyclique à chaque date, ce qui est précisément la question à laquelle un indicateur de vulnérabilités doit apporter un élément de réponse.
+
+\subsection{Du \emph{credit-to-GDP gap} au faisceau d'indicateurs}
+\label{subsec:creditgap}
+
+Le dispositif bâlois a d'abord confié cette appréciation à une variable unique. \textcite{borio2002} montrent que l'écart cumulé du ratio crédit sur PIB à sa tendance de long terme domine les variables de croissance du crédit pour signaler les crises bancaires, une mesure de \emph{stock} capturant l'accumulation des déséquilibres là où les flux n'en captent que la vitesse~; \textcite{drehmann2011} en déduisent le calcul standardisé par filtre de Hodrick-Prescott unilatéral à paramètre de lissage très élevé ($\lambda = 400\,000$), et le Comité de Bâle la règle graduée du \emph{buffer guide}, un coussin nul sous deux points d'écart et croissant jusqu'à 2,5~\% à dix points, que la CRD~IV impose aux autorités européennes de calculer et de publier chaque trimestre. Le \emph{credit-to-GDP gap} n'a jamais eu, dans les textes, le statut d'une règle contraignante~; la recommandation ESRB/2014/1 en fait un point de départ du jugement, non son terme.
+
+Trois critiques ont progressivement déclassé cette ancre. La première porte sur sa fiabilité en temps réel, \textcite{edge2011} montrant que les révisions de fin d'échantillon du filtre unilatéral sont suffisamment importantes pour que le gap disponible à la date de décision diffère substantiellement, y compris en signe, du gap reconstruit ex post. La deuxième porte sur l'outil statistique. \textcite{hamilton2018} établit que le filtre de Hodrick-Prescott produit des dynamiques artificielles et repose sur un paramètre arbitraire, ce à quoi \textcite{drehmannyetman2018} répondent qu'aucune méthode alternative de détrending ne domine le gap bâlois en performance prédictive, débat qui illustre une tension durable entre validité statistique et utilité prédictive. La troisième est empirique et procède des chocs des années 2020. La pandémie a gonflé mécaniquement les gaps par l'effondrement du dénominateur au moment même où les autorités relâchaient les coussins, puis le rebond nominal amplifié par l'inflation les a précipités vers des valeurs fortement négatives, de sorte qu'en 2026 les gaps sont compris entre $-1$ et $-23$ points dans les principaux pays européens alors que huit d'entre eux maintiennent un coussin positif.
+
+La pratique institutionnelle a réagi en trois temps. Les autorités ont d'abord corrigé le calcul, le HCSF publiant par exemple un gap consolidé des prêts intragroupes qui neutralise le biais induit par les structures de financement des grands groupes français. Elles ont ensuite rétrogradé le gap du rang d'ancre à celui d'indicateur parmi d'autres, motivant leurs décisions par des batteries d'indicateurs d'endettement, de prix d'actifs et de conditions de financement, dont le \emph{domestic Systemic Risk Indicator} de \textcite{lang2019} fournit à la BCE une synthèse multivariée explicitement conçue pour pallier les limites du gap. Enfin, une majorité de juridictions a adopté un taux neutre positif, c'est-à-dire un CCyB strictement positif lorsque le risque cyclique est jugé ni faible ni élevé, calibré sur des pertes historiques, des tests de résistance ou un objectif de capital libérable, ce qui découple le niveau de référence du coussin de toute mesure de cycle \parencite{bcbs2024pnr}. Les pratiques nationales et les enseignements empiriques sur les effets du relâchement sont présentés en annexe~\ref{annexe:ccyb-ue}.
+
+\subsection{La position française et le statut de l'indicateur}
+
+La France occupe dans ce paysage une position intermédiaire, décrite dans le tableau~\ref{tab:ccyb_ue} de l'annexe~\ref{annexe:ccyb-ue}. Le HCSF n'a pas adopté de taux neutre positif~; il n'affiche ni cible, ni méthode de calibration d'un taux de référence, ni règle de reconstitution. Il maintient pourtant le coussin à 1~\% alors que le gap bâlois s'établit à $-14{,}1$~points au troisième trimestre 2025, ce qui produit un résultat matériellement proche d'une activation précoce, un volant relâchable existant alors que le signal de référence est nul. La doctrine française du pouvoir discrétionnaire orienté se distingue donc des cadres à taux neutre moins par le niveau du coussin que par le degré d'engagement. Là où ces cadres lient l'autorité à une cible et à des principes publiés, le Haut Conseil conserve l'entière discrétion de son jugement, au prix d'une moindre prévisibilité.
+
+C'est dans cet espace, entre la règle univariée et le jugement pur, que se loge l'indicateur composite construit durant l'alternance. Sa fonction est d'estimer le niveau global de risque cyclique à une date donnée, sous une forme comparable dans le temps et décomposable par catégorie, pour alimenter une décision qui reste plus large que lui, puisqu'elle intègre aussi la capacité d'absorption du système bancaire, les conditions macroéconomiques et l'interaction avec les autres politiques publiques. En l'absence de règle, la qualité de la décision repose sur celle du faisceau d'indicateurs qui oriente le jugement, ce qui rehausse l'exigence de robustesse portée sur chacun d'eux~; les critiques adressées au gap, de la fiabilité en temps réel à la dépendance du signal aux choix de construction, définissent par avance la grille d'évaluation qu'il convient d'appliquer à l'indicateur, exercice conduit aux chapitres~\ref{chap:resultats} et~\ref{chap:critique}.
+
+\section{Mesurer les vulnérabilités~: trois familles d'approches}
+
+\subsection{Les indicateurs de cycle financier}
+
+Une première famille de travaux cherche à caractériser le cycle financier lui-même, entendu comme le mouvement commun de moyen terme des variables de crédit et de prix d'actifs. \textcite{claessens2012} et \textcite{drehmann2012} montrent que les cycles financiers sont plus longs et de plus grande amplitude que les cycles conjoncturels, et que leurs retournements coïncident souvent avec des crises~; \textcite{borio2014} en propose la synthèse conceptuelle. Les méthodes de mesure se répartissent en trois groupes. Les approches par filtrage extraient la composante de moyen terme d'un petit nombre de séries, le crédit et les prix immobiliers principalement, par filtre passe-bande ou par points de retournement, comme chez \textcite{drehmann2012} ou \textcite{aikman2015}, qui documentent sur données britanniques et internationales un cycle du crédit distinct du cycle conjoncturel. Les approches multivariées en domaine fréquentiel ou par modèles à composantes inobservées estiment un cycle commun à plusieurs séries, les fréquences retenues étant déduites des données plutôt que fixées a priori~; \textcite{schuler2015} construisent ainsi pour les pays de l'Union un indicateur agrégeant crédit, prix immobiliers, actions et obligations en tenant compte de leurs dépendances variables dans le temps, \textcite{runstler2018} estiment conjointement les cycles du crédit, de l'immobilier et de l'activité, et \textcite{strohsal2019} confirment en domaine fréquentiel que le cycle financier est plus long que le cycle des affaires et que sa longueur s'est accrue depuis les années 1980. Les approches par agrégation, enfin, combinent des séries standardisées en un score unique, comme \textcite{stremmel2015} pour les pays européens.
+
+Pour la France, deux outils institutionnels relèvent de cette famille. La Banque de France mobilise deux mesures de la position dans le cycle \parencite{couaillier2018}, l'une fondée sur la seule dynamique de la dette privée et des prix immobiliers, l'autre, inspirée de \textcite{schuler2015}, agrégeant en outre les marchés d'actions et d'obligations sous la forme d'une moyenne des fonctions de répartition empiriques des séries, le zéro correspondant à la médiane historique~; ces mesures ont accompagné la première activation du CCyB en 2018, décidée en phase montante du cycle. La DG Trésor a de son côté construit \parencite{russo2022} deux indicateurs de cycle financier pour la France depuis le début des années 2000, l'un sur les cycles courts de deux à huit ans, l'autre sur les cycles longs de huit à vingt-cinq ans, à partir du crédit aux ménages et aux entreprises, des cours des actions et des taux obligataires. Ces indicateurs situent l'économie dans les phases d'expansion et de contraction financières, mais ne fournissent pas directement une mesure du niveau de vulnérabilité, car un même point du cycle peut recouvrir des configurations de risque différentes. C'est cette limite, et non un désaccord de méthode, qui motive le choix d'un indicateur de niveau plutôt que de position dans le cycle.
+
+\subsection{Les indicateurs avancés de crise}
+
+Deuxièmement, les \emph{early warning indicators} visent à prédire la matérialisation de crises à un horizon donné. La méthode des signaux de \textcite{kaminsky1999} inaugure la démarche~; \textcite{borio2002} montrent que la combinaison d'une forte progression du crédit et des prix d'actifs améliore nettement le signal~; \textcite{schularick2012}, sur un panel historique de long terme, établissent que l'expansion du crédit est le prédicteur le plus robuste des crises financières. \textcite{alessi2011} systématisent l'évaluation de ces indicateurs en fonction des préférences du décideur entre faux positifs et faux négatifs, et \textcite{drehmann2013} formalisent les exigences opérationnelles d'un bon indicateur avancé, que sont la précocité et la stabilité du signal, la robustesse et l'interprétabilité. Ces critères fournissent une grille d'évaluation que le chapitre~\ref{chap:critique} retournera sur l'indicateur construit ici. La variable cible mobilisée dans ce mémoire, issue de la base des crises financières européennes du CERS, provient directement de cette littérature et est documentée par \textcite{loduca2017}, qui identifie par une approche narrative les épisodes de tensions systémiques des États membres.
+
+\subsection{Les indicateurs composites~: stress contemporain et vulnérabilité \emph{ex ante}}
+
+Une troisième famille agrège plusieurs dimensions du risque en un score unique. Il faut ici distinguer deux objets. Les indices de conditions ou de stress financiers mesurent les tensions \emph{réalisées}. Le CISS de \textcite{hollo2012} pour la zone euro agrège les tensions de cinq segments de marché en tenant compte de leurs corrélations~; le NFCI de la Réserve fédérale de Chicago \parencite{brave2011} en est l'équivalent américain. Les indicateurs de vulnérabilité mesurent au contraire l'accumulation \emph{ex ante} de déséquilibres. La cartographie de \textcite{aikman2017} pour les États-Unis, et surtout le \emph{domestic Systemic Risk Indicator} (d-SRI) de \textcite{lang2019}, construit pour les pays de la zone euro à partir de variables de crédit, d'immobilier et de valorisation, en constituent les références. Le d-SRI est le comparable européen le plus direct de l'indicateur présenté ici~; la différence principale tient à la méthode de pondération, fondée chez \textcite{lang2019} sur la capacité de signal univariée des variables, et ici sur une importance multivariée issue d'un modèle non linéaire. Enfin, l'approche \emph{growth-at-risk} de \textcite{adrian2019} relie les conditions financières courantes aux quantiles inférieurs de la distribution de la croissance future. Elle offre une lecture «~en risque~» séduisante mais moins directement décomposable en contributions par catégorie de vulnérabilité, ce qui a orienté le choix d'un score agrégé décomposable ici.
+
+L'indicateur construit durant l'alternance appartient à la seconde branche de cette troisième famille. Il ne prédit pas une crise à horizon donné, ne mesure pas un stress réalisé et ne date pas le cycle, mais fournit un diagnostic du niveau courant de vulnérabilité, situé en perspective historique et décomposable par catégorie de risque.
+
+\section{L'apprentissage automatique en macroprudentiel}
+
+Le recours à l'apprentissage automatique pour la détection des vulnérabilités s'est développé au cours de la dernière décennie. \textcite{alessi2018} utilisent une forêt aléatoire pour identifier les épisodes de croissance excessive du crédit dans l'Union européenne et montrent qu'elle domine les approches par seuils univariés. \textcite{bluwstein2023} comparent systématiquement les méthodes d'apprentissage sur données macrofinancières historiques et trouvent un gain prédictif des méthodes non linéaires, tout en soulignant l'apport des outils d'interprétabilité. \textcite{fouliard2021} proposent une agrégation séquentielle d'experts qui délivre des prédictions en temps réel remarquablement performantes. Ce panorama appelle toutefois un contrepoint. \textcite{beutel2019} montrent que, sur données de crises bancaires en validation hors échantillon rigoureuse, les méthodes d'apprentissage ne dominent pas systématiquement la régression logistique. Ce résultat rappelle que le gain du non-linéaire dépend de la taille et de la qualité de l'échantillon, considération centrale pour un panel français comptant seulement cinq épisodes de tensions.
+
+Le modèle mobilisé ici est la forêt aléatoire de \textcite{breiman2001}, agrégation d'arbres de décision estimés sur des échantillons bootstrap avec sous-échantillonnage aléatoire des prédicteurs. L'importance de chaque variable y est classiquement mesurée par la \emph{Mean Decrease Accuracy} (MDA), perte moyenne de précision consécutive à la permutation des valeurs de la variable. Or cette mesure présente des biais documentés. \textcite{strobl2007} montrent qu'elle est faussée lorsque les prédicteurs diffèrent par leur échelle ou leur nombre de modalités, et \textcite{strobl2008} qu'elle répartit mal l'importance entre prédicteurs corrélés, au détriment d'une interprétation causale. Ces résultats, ainsi que les recommandations de \textcite{bergmeir2018} et de \textcite{roberts2017} sur la validation croisée en présence de dépendance temporelle, arment à la fois les tests de robustesse du chapitre~\ref{chap:resultats} et la discussion critique du chapitre~\ref{chap:critique}.
+
+\section{Positionnement de la contribution}
+
+Au regard de cette littérature, la contribution de ce travail peut être énoncée en trois points. Premièrement, il construit pour la France un indicateur de vulnérabilité \emph{ex ante} synthétique et décomposable, là où les outils nationaux existants relèvent du cycle financier ou du suivi multivarié non agrégé. Deuxièmement, il objective la pondération des variables en la reliant, par un modèle de forêt aléatoire, aux épisodes de tensions historiques identifiés par le CERS, plutôt que de recourir à des poids conventionnels. Troisièmement, il assume explicitement le statut d'outil d'aide au diagnostic au service du pouvoir discrétionnaire orienté, l'indicateur éclairant la décision macroprudentielle sans prétendre s'y substituer.
+
+% ============================================================
+% CHAPITRE 2
+% ============================================================
+\chapter{Construction d'un indicateur composite de vulnérabilités~: données et méthodologie}
+\label{chap:methodo}
+
+\section{Le choix des dix-sept variables}
+
+La sélection des variables procède d'un double filtre, la littérature des indicateurs avancés présentée au chapitre précédent et les pratiques de suivi macroprudentiel de la direction et du HCSF. Dix-neuf variables macrofinancières trimestrielles ont été initialement candidates, dont dix-sept ont été retenues à l'issue du traitement de la multicolinéarité présenté dans la section suivante, regroupées en cinq catégories économiquement interprétables.
+
+La première catégorie, l'\emph{encours de dette des ménages et des sociétés non financières} (SNF), rassemble six variables, les ratios de dette sur PIB, les charges de la dette et les croissances des encours de prêts, pour chacun des deux secteurs. Elle traduit l'enseignement central de \textcite{schularick2012} et de \textcite{drehmann2013}, selon lesquels l'accumulation d'endettement privé et le service de la dette qui en découle sont les prédicteurs les plus robustes des tensions financières. La deuxième catégorie, les \emph{conditions de financement du crédit}, comprend cinq variables, les taux d'intérêt moyens des nouveaux crédits aux ménages et aux SNF, les mesures de durcissement des critères d'octroi issues des enquêtes auprès des banques et la part des SNF déclarant des contraintes de crédit. Elle capte la dimension prix et la dimension quantité de l'offre de crédit. La troisième catégorie couvre le \emph{marché immobilier} par le ratio des prix immobiliers aux revenus des ménages et une mesure de surévaluation des prix, conformément au rôle des booms immobiliers dans les crises documenté par \textcite{borio2002}. La quatrième, les \emph{conditions de financement sur les marchés}, mobilise le \emph{spread} entre rendements obligataires \emph{High Yield} et taux \emph{swap}, ainsi que l'écart OAT--Bund, mesures du coût de financement de marché des agents privés et souverain. La cinquième, la \emph{valorisation sur les marchés}, retient le \emph{price earning ratio} du marché actions français et la prime moyenne de \emph{credit default swap} des valeurs du CAC~40, indicateurs d'exubérance ou de défiance des valorisations. Les sources mobilisées sont Bloomberg, la Banque des règlements internationaux, la Banque de France et la BCE~; le panel complet est disponible à partir du premier trimestre 2009, certaines séries disposant d'un historique plus long. 
+
+\includegraphics[width=\textwidth]{figures/categorie_variables.pdf}
+
+\section{Le traitement de la multicolinéarité}
+\label{sec:multico}
+
+La multicolinéarité désigne la situation dans laquelle plusieurs variables explicatives sont des combinaisons quasi linéaires les unes des autres. En régression linéaire, ses conséquences sont bien connues. Les coefficients restent sans biais mais leurs variances explosent, les estimations deviennent instables d'un échantillon à l'autre et l'attribution de l'effet entre variables corrélées est arbitraire, la prévision d'ensemble n'étant en revanche pas affectée. Il est fréquent de lire que les modèles d'apprentissage automatique, et singulièrement les forêts aléatoires, sont immunisés contre ce problème parce qu'ils ne reposent sur aucune inversion de matrice et parce que leur objectif est la prévision. Cette affirmation est exacte pour la prévision et fausse pour l'interprétation. Or c'est précisément l'interprétation, sous la forme des importances de variables converties en pondérations, qui constitue le produit du modèle dans le présent travail.
+
+Le mécanisme est le suivant. À chaque n\oe ud, la forêt tire un sous-ensemble de variables et choisit la meilleure division parmi elles. Lorsque deux variables portent la même information, l'une ou l'autre est sélectionnée selon le tirage, de sorte que leur importance est partagée entre elles de manière essentiellement aléatoire, chacune paraissant deux fois moins importante qu'elle ne l'est. \textcite{strobl2008} montrent en outre que l'importance par permutation surestime les variables corrélées à des prédicteurs pertinents, la permutation d'une variable rompant à la fois son lien avec la cible et sa corrélation avec les autres variables, ce qui gonfle la perte de précision mesurée. \textcite{gregorutti2017} établissent analytiquement que l'importance par permutation d'un groupe de variables corrélées décroît avec le nombre de variables du groupe et avec l'intensité de leur corrélation. Dans un indicateur composite dont les poids sont ces importances normalisées, la conséquence est directe, une dimension du risque représentée par plusieurs variables redondantes verrait son poids total dilué ou gonflé selon les cas, et la hiérarchie entre catégories, qui est l'objet même de l'outil, en serait affectée.
+
+\subsection{La procédure retenue}
+
+Le diagnostic a été conduit sur le panel initial de dix-neuf variables, à partir de deux instruments. Le premier est la matrice des corrélations entre variables, dont sont extraites les paires présentant un coefficient supérieur à 0,8 en valeur absolue. Le second est le facteur d'inflation de la variance (VIF), calculé à partir d'une régression linéaire auxiliaire de chaque variable sur les autres, avec le seuil usuel de 10 au-delà duquel la colinéarité est jugée sévère. La démarche est itérative, les VIF sont recalculés après chaque retrait.
+
+Le diagnostic initial fait apparaître deux groupes de redondances. Le premier concerne les variables de taux de marché. Le \emph{spread} obligataire \emph{investment grade} est corrélé à 0,83 au \emph{spread High Yield} une fois celui-ci exprimé net du premier, et au-delà de 0,9 avant cette correction~; les deux séries mesurent le même objet, le coût du financement obligataire des entreprises, à des niveaux de risque différents. Le taux de l'OAT à dix ans est corrélé à 0,89 au taux des nouveaux crédits aux ménages, à 0,80 au taux des nouveaux crédits aux SNF et à $-0{,}80$ à la part des SNF déclarant des contraintes de crédit~; il constitue le taux de référence dont les taux de crédit sont la transmission, et il est déjà présent dans le panel par différence au travers de l'écart OAT--Bund. Ces deux variables, le \emph{spread investment grade} et le taux de l'OAT à dix ans, ont été retirées, ce qui ramène le panel à dix-sept variables. Après retrait, le VIF du \emph{spread High Yield} passe d'environ 20 à moins de 5 et aucune paire de variables de conditions de financement ne dépasse le seuil de 0,8. Le tableau~\ref{tab:multico} en annexe~\ref{annexe:figures} récapitule les corrélations et les VIF avant et après traitement.
+
+Le second groupe de redondances concerne les variables d'endettement. Les ratios de dette des ménages et des SNF sont corrélés à 0,98 sur la période 2009--2025, et chacun l'est à près de 0,9 au service de la dette des SNF~; les VIF correspondants sont très supérieurs à 10 et le demeurent après le retrait des deux variables de taux. Ces variables ont néanmoins été conservées, et ce choix demande à être justifié. Leur corrélation ne traduit pas une redondance de contenu, comme dans le cas des deux \emph{spreads}, mais le partage d'une tendance commune, la progression séculaire de l'endettement privé français sur la période, qui rend deux séries économiquement distinctes statistiquement indiscernables sur un échantillon court. Retirer la dette des SNF au motif de sa corrélation avec celle des ménages aurait privé l'indicateur d'une dimension de vulnérabilité centrale, que le HCSF a par ailleurs le plus directement ciblée par ses mesures de 2018, et aurait rendu sa décomposition moins intelligible pour ses utilisateurs. Le compromis retenu consiste donc à traiter la multicolinéarité de substitution, où une variable est le double d'une autre, et à assumer la multicolinéarité de tendance, où des variables distinctes évoluent ensemble, en tirant les conséquences de cette dernière sur l'interprétation. La répartition du poids à l'intérieur de la catégorie endettement est moins fiable que le poids de la catégorie elle-même, point sur lequel les tests de la section~\ref{sec:robustesse-split} apportent une mesure et sur lequel le chapitre~\ref{chap:critique} revient.
+
+\subsection{Effet sur la pondération et sur la performance}
+
+Le retrait des deux variables redondantes améliore le modèle à deux titres. Sur la pondération, il met fin au partage aléatoire de l'importance entre le \emph{spread High Yield} et le \emph{spread investment grade}, et entre le taux de l'OAT et les taux de crédit qu'il détermine. Le \emph{spread High Yield} concentre ainsi 15,6~\% du poids total dans le modèle final et s'impose comme la deuxième variable de l'indicateur, là où le modèle à dix-neuf variables répartissait cette importance entre deux séries quasi identiques [insérer les pondérations du modèle à dix-neuf variables pour chiffrer le partage]. L'écart OAT--Bund mesure désormais sans ambiguïté la prime de risque française du coût de financement. Sur la performance, la comparaison des deux modèles sur la même partition donne [insérer~: précision, kappa, sensibilité et AUC du modèle à dix-neuf variables, contre les métriques du modèle final~; à ce jour, 93,5~\%, 0,82, 1,00 et 1,00 pour l'un contre 96,8~\%, 0,90, 1,00 et 0,97 pour l'autre, à vérifier sur données identiques]. Le gain de performance est modeste, ce qui est attendu puisque la multicolinéarité affecte peu la capacité prédictive d'une forêt~; le gain principal est celui de la lisibilité et de la stabilité de la pondération.
+
+\subsection{Les critiques que la procédure appelle}
+
+Cette procédure prête à trois critiques que le chapitre~\ref{chap:critique} n'aura pas à répéter. La première tient à la nature des instruments. Le VIF et la corrélation linéaire sont des diagnostics conçus pour la régression linéaire~; ils mesurent la redondance linéaire entre variables, alors que la forêt aléatoire exploite des relations non linéaires et des interactions, de sorte qu'une paire de variables faiblement corrélées linéairement peut être redondante pour le modèle et inversement. Ces instruments sont ici employés comme des filtres de bon sens, non comme des tests adaptés au modèle~; des mesures fondées sur la structure de la forêt elle-même, comme l'importance conditionnelle de \textcite{strobl2008}, seraient plus cohérentes. La deuxième tient au caractère arbitraire des seuils, 0,8 pour la corrélation et 10 pour le VIF, qui n'ont pas d'autre justification que l'usage. La troisième, la plus sérieuse, tient à l'application asymétrique de la règle, deux variables corrélées à 0,83 ayant été séparées tandis que deux variables corrélées à 0,98 ont été conservées. La justification économique de cette asymétrie a été donnée plus haut~; elle n'en reste pas moins un jugement, et non le résultat d'une procédure, et elle implique qu'une partie de la structure de pondération publiée, la répartition entre dette des ménages, dette des SNF et service de la dette des SNF, doit être lue avec la réserve que les tests de robustesse ont ensuite confirmée.
+
+\section{Standardisation et agrégation}
+
+Les variables retenues sont exprimées dans des unités hétérogènes. Chaque série est donc standardisée en \emph{z-score} selon la relation
+\begin{equation}
+    Z_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sigma_{i,t}},
+    \label{eq:zscore}
+\end{equation}
+où $\mu_{i,t}$ et $\sigma_{i,t}$ désignent la moyenne et l'écart type de la série $i$ calculés sur l'historique disponible complet jusqu'en $t$. Le z-score mesure ainsi l'écart de l'observation courante à sa norme historique, en nombre d'écarts types. C'est cette notion de déviation qui fonde l'interprétation de l'indicateur en termes de vulnérabilité.
+
+L'indicateur composite est la moyenne pondérée des z-scores, soit
+\begin{equation}
+    I_t = \sum_{i=1}^{17} w_i\, Z_{i,t},
+    \qquad \sum_{i=1}^{17} w_i = 1 .
+    \label{eq:indicateur}
+\end{equation}
+La décomposition de $I_t$ en contributions $w_i Z_{i,t}$, sommées par catégorie, permet d'identifier à chaque date les dimensions du risque qui portent le niveau d'ensemble. La question des poids $w_i$ devient alors centrale.
+
+\section{La variable cible~: les épisodes de tensions de la base du CERS}
+
+Plutôt que de fixer les poids par convention, la démarche retenue les relie à la capacité de chaque variable à prédire les épisodes de tensions financières passés. La variable cible est binaire et vaut un lorsque le trimestre appartient à un épisode de tensions identifié pour la France dans la base \emph{European financial crises} du CERS \parencite{loduca2017}, zéro sinon. Cinq épisodes sont recensés pour la France, à savoir la longue phase d'ajustement immobilier et de fragilité bancaire des années 1991--1999, l'éclatement de la bulle internet en 2002--2003, la crise financière mondiale de 2008--2011, la crise des dettes souveraines de la zone euro en 2011--2012 et le choc systémique lié à la pandémie en 2020--2021. L'échantillon d'estimation débutant au premier trimestre 1999, quatre de ces épisodes y figurent effectivement, représentant 25 trimestres de tensions sur 107. Le caractère narratif de cette base, ses choix de datation et l'hétérogénéité des épisodes qu'elle agrège constituent à la fois le fondement empirique du travail et l'une de ses limites, discutée au chapitre~\ref{chap:critique}.
+
+\section{La pondération par forêt aléatoire}
+
+Le lien entre variables et épisodes de tensions est vraisemblablement non linéaire et fait intervenir des interactions, un niveau d'endettement élevé n'ayant pas la même portée selon les conditions de financement. Le modèle retenu est une forêt aléatoire \parencite{breiman2001}, choisie pour sa robustesse sur échantillon court, sa capacité à capter non-linéarités et interactions sans spécification préalable, et son traitement natif des valeurs manquantes en début de période pour les séries à historique court, qui évite une imputation arbitraire. La forêt estimée comprend 180 arbres~; à chaque n\oe ud, quatre variables sont tirées au hasard parmi les dix-sept, soit la partie entière de $\sqrt{17}$, le critère de division est l'indice de Gini, les arbres sont développés sans limite de profondeur jusqu'à des feuilles d'une observation, et chaque arbre est estimé sur un échantillon bootstrap tiré avec remise. Ces valeurs correspondent aux réglages par défaut du package pour une tâche de classification, la forêt aléatoire étant peu sensible à ses hyperparamètres sur un échantillon de cette taille~; seul le nombre d'arbres a été fixé de manière à stabiliser les mesures d'importance. Le tableau~\ref{tab:hyper-rf} en annexe~\ref{annexe:robustesse} récapitule ces réglages.
+
+Le modèle est estimé sur 70~\% des observations et évalué sur les 30~\% restants, la séparation étant obtenue par un tirage aléatoire trimestre par trimestre. Sur l'échantillon de test, la précision atteint 96,8~\%, le coefficient kappa de Cohen 0,9, la sensibilité 100~\% et l'aire sous la courbe ROC 0,97. La sensibilité parfaite signifie qu'aucun trimestre de tension n'est manqué, propriété souhaitable dans un cadre où le coût d'un faux négatif excède nettement celui d'un faux positif. Ces performances, obtenues sur un échantillon historique court comptant peu d'épisodes, doivent néanmoins être interprétées avec prudence~; le chapitre~\ref{chap:resultats} en teste systématiquement la sensibilité au mode de partition entre échantillons d'apprentissage et de test, et le chapitre~\ref{chap:critique} en tire les conséquences méthodologiques.
+% [Vérifier la cohérence des métriques publiées (96,8 % ; kappa 0,9 ; AUC 0,97)
+%  avec la réplication d'août 2026 sur données révisées (93,5 % ; 0,82 ; 0,99),
+%  cf. section 3.3.3 et Performance_RF.txt. Si les chiffres publiés proviennent
+%  d'une version antérieure des données, le dire en note de bas de page.]
+
+Les pondérations sont déduites de l'importance de permutation. Pour chaque variable, la MDA mesure la perte moyenne de précision du modèle lorsque ses valeurs sont permutées aléatoirement, rompant son lien avec la cible. Les MDA sont ensuite normalisées à somme unitaire pour donner les poids $w_i$ de l'équation~\eqref{eq:indicateur}. La structure de pondération obtenue fait ressortir le poids prépondérant de la catégorie d'encours de dette des ménages et des SNF, qui concentre 55,2~\% du total, dont 16,6~\% pour le seul ratio de dette des ménages sur PIB~; viennent ensuite les conditions de financement sur les marchés (16,7~\%, portées par le \emph{spread High Yield} à 15,6~\%), les conditions de financement du crédit (13,8~\%), le marché immobilier (12,1~\%) et les valorisations de marché (2,2~\%). Cette hiérarchie est cohérente avec la littérature, puisque ce sont bien les variables d'endettement privé que \textcite{schularick2012} et \textcite{drehmann2013} identifient comme les plus informatives.
+
+Deux précisions d'interprétation s'imposent. D'une part, l'indicateur composite ne reproduit pas la fonction de prévision du modèle. La forêt aléatoire est non linéaire, tandis que l'indicateur est une combinaison linéaire des z-scores~; aucun seuil de l'indicateur ne correspond donc à une probabilité de crise. D'autre part, l'importance de permutation qualifie la contribution prédictive d'une variable sans en donner le signe. L'indicateur synthétise l'ampleur des déviations historiques pondérée par leur pertinence prédictive, et son interprétation directionnelle repose sur la lecture économique des z-scores, non sur le modèle.
+
+% ============================================================
+% CHAPITRE 3
+% ============================================================
+\chapter{Résultats~: relecture historique et robustesse}
+\label{chap:resultats}
+
+\section{Lecture d'ensemble de l'indicateur}
+
+\includegraphics[width=\textwidth]{figures/indicateur_final.pdf}
+
+L'indicateur restitue les grands épisodes de vulnérabilité de la sphère financière française sur la période. Il s'établit à un niveau élevé (0,7) dès son point de départ au premier trimestre 2009, culmine à 0,9 au troisième trimestre 2020 au c\oe ur de la crise sanitaire, et présente des maxima locaux lors de la crise des dettes souveraines (0,4 au premier trimestre 2012) et du choc d'inflation (0,6 au troisième trimestre 2022). Sa décomposition par catégorie révèle en outre que des niveaux agrégés comparables recouvrent des configurations de risque très différentes, ce qui constitue l'apport principal de l'outil par rapport à un suivi univarié.
+
+\section{Relecture des épisodes, 2009--2026}
+
+\emph{La sortie de la crise financière mondiale (2009--2012).} Au premier trimestre 2009, le niveau élevé de l'indicateur est presque entièrement porté par la composante de financement sur les marchés. Les \emph{spreads} de crédit exceptionnellement larges constituent alors le facteur dominant de vulnérabilité, tandis que la contribution de l'endettement est négative du fait de la contraction du crédit. L'indicateur décroît rapidement avec la normalisation des conditions de marché jusqu'à fin 2009, avant de rebondir en 2011--2012 lors de la crise des dettes souveraines, sous l'effet conjoint de l'écartement des \emph{spreads High Yield} et de l'écart OAT--Bund.
+
+\emph{La période de \emph{quantitative easing} (2013--2018).} À partir de 2013, l'indicateur agrégé oscille autour de zéro, à un niveau historiquement faible. Cette stabilité apparente masque deux dynamiques opposées que la décomposition révèle. La composante d'encours de dette augmente continûment depuis un niveau nul au deuxième trimestre 2013, portée par la progression de l'endettement des ménages et des SNF dans un contexte de financement très favorable, tandis que les composantes de conditions de financement, comprimées par la politique monétaire accommodante et les achats d'actifs, exercent un effet compensateur négatif. Cet épisode illustre l'intérêt d'une analyse décomposée. Le niveau agrégé seul aurait conclu à l'absence de vulnérabilité au moment même où s'accumulait l'endettement privé qui motivera l'activation du CCyB en 2018--2019.
+
+\emph{Le choc pandémique (2020--2021).} La crise sanitaire porte l'indicateur de 0,2 au quatrième trimestre 2019 à 0,9 au troisième trimestre 2020, plus haut de la période. La hausse provient principalement de la composante d'endettement, qui double en quatre trimestres sous l'effet dénominateur de la contraction du PIB et, pour les SNF, de l'expansion du crédit liée aux prêts garantis par l'État~; le service de la dette des SNF se dégrade nettement et le marché immobilier contribue positivement avec l'accélération des prix. L'interprétation de cet épisode appelle toutefois de la prudence. Le choc est exogène au secteur financier, et sa présence dans l'échantillon d'entraînement du modèle de pondération soulève une question discutée au chapitre~\ref{chap:critique}.
+
+\emph{Le retour de l'inflation (2022--2024).} La remontée rapide des taux directeurs à partir de 2022 recompose la structure des vulnérabilités. L'indicateur monte temporairement de 0,3 à 0,6 entre les troisièmes trimestres 2021 et 2022, les conditions de financement de marché cessant d'être accommodantes, tandis que s'enclenche une normalisation de la composante d'endettement, dont la contribution passe de 0,5 au troisième trimestre 2022 à un niveau quasi nul deux ans plus tard, sous l'effet du ralentissement du crédit, de la croissance nominale et du désendettement des SNF.
+
+\emph{La stabilisation (2024--2025).} L'indicateur se stabilise à partir du début de 2024 à un niveau proche de zéro, puis légèrement négatif. La composante d'endettement demeure la seule contribution positive significative. Les ratios de dette des ménages et des SNF et le service de la dette des SNF restent supérieurs à leurs moyennes de long terme, tandis que la modération de la croissance du crédit atténue la vulnérabilité. Les conditions de financement de marché exercent un effet baissier, l'écart OAT--Bund contribuant positivement mais les \emph{spreads High Yield} demeurant resserrés en perspective historique, et le marché immobilier joue également à la baisse dans un contexte de normalisation des prix. Ce diagnostic d'équilibre entre facteurs haussiers et baissiers, sur fond d'endettement élevé, est cohérent avec le maintien du CCyB à 1~\% décidé par le HCSF en l'absence de restriction de l'offre de crédit. Le retour de l'indicateur au voisinage de zéro sur cette période est toutefois l'un des points sur lesquels les tests de robustesse de la section~\ref{sec:robustesse-split} apportent une nuance.
+
+\emph{La remontée de 2026.} La mise à jour d'août 2026 prolonge l'indicateur jusqu'au troisième trimestre 2026 et fait apparaître un retournement. Après un point bas au premier trimestre ($-0{,}02$), l'indicateur remonte au deuxième ($+0{,}04$) puis au troisième trimestre ($+0{,}07$). Le niveau reste modéré, mais la direction change pour la première fois depuis 2022, et la décomposition en identifie l'origine sans ambiguïté. La composante de financement du crédit, négative ou nulle depuis 2024, devient positive et progresse continûment sur les trois trimestres (contribution de $+0{,}08$ au troisième trimestre)~; elle traduit le durcissement des critères d'octroi rapporté par les enquêtes auprès des banques, qui font état d'un resserrement net dans toutes les catégories de prêts au premier trimestre 2026, d'un nouveau resserrement au deuxième trimestre et d'anticipations de durcissement supplémentaire au troisième, les établissements citant les tensions géopolitiques, le renchérissement de l'énergie et la hausse de leurs coûts de financement. La composante d'endettement demeure la principale contribution positive ($+0{,}16$), le service de la dette des SNF se dégradant à nouveau tandis que la croissance des encours reste modératrice. À l'inverse, le marché immobilier ($-0{,}09$) et le financement de marché ($-0{,}10$) continuent de tirer l'indicateur vers le bas, les \emph{spreads High Yield} demeurant resserrés en dépit du contexte.
+
+Ce retournement s'inscrit dans un contexte macrofinancier lui-même retourné. Le conflit au Proche et Moyen-Orient ouvert le 28 février 2026 par les frappes américaines et israéliennes en Iran, et les perturbations du détroit d'Ormuz qui l'ont accompagné, ont provoqué un choc énergétique qui a ramené l'inflation de la zone euro à 3,2~\% en mai 2026. La BCE a relevé ses trois taux directeurs de 25 points de base le 11~juin 2026, portant le taux de la facilité de dépôt à 2,25~\%, première hausse depuis 2023 et fin du cycle de baisse engagé en 2024, en révisant à la hausse ses projections d'inflation pour 2026 et 2027. La transmission de ce resserrement aux taux des nouveaux crédits et, avec retard, au service de la dette des ménages et des SNF n'est encore que partiellement visible dans l'indicateur, dont les trois trimestres de 2026 reposent sur des données incomplètes. Les ratios de dette, la surévaluation immobilière et le ratio des prix immobiliers aux revenus y sont prolongés à l'identique depuis le quatrième trimestre 2025, de sorte que la remontée affichée repose pour l'essentiel sur les variables effectivement mises à jour, les conditions d'octroi, le service de la dette et les variables de marché. Deux lectures en découlent. La première est que la hausse est vraisemblablement sous-estimée, la mise à jour des variables d'endettement devant intégrer l'effet de la hausse des taux sur le service de la dette. La seconde est que la configuration actuelle diffère de celle de 2022, le choc passant cette fois par le canal du crédit bancaire, et les conditions d'octroi se durcissant avant que les marchés ne réagissent, alors qu'en 2022 le mouvement était venu des marchés. Cette différence de canal est précisément ce que la décomposition de l'indicateur permet de voir, et ce qu'un indicateur univarié ne montrerait pas. La section~\ref{sec:lag} revient sur le traitement des trimestres incomplets.
+
+\section{Tests de robustesse}
+\label{sec:robustesse}
+
+Les tests de robustesse relèvent de deux ordres. Les premiers, conduits durant la mission, portent sur la spécification de l'indicateur, c'est-à-dire sur la standardisation et sur l'algorithme de pondération. Les seconds, réalisés pour ce mémoire, portent sur la séparation de l'échantillon d'apprentissage, dont le chapitre~\ref{chap:litterature} a signalé qu'elle constituait le point le plus discutable du protocole. Ils sont présentés dans cet ordre.
+
+\subsection{Robustesse à la spécification}
+
+Dans les premières versions de l'indicateur, la pondération était égale, soit entre les variables, soit entre les catégories. Quatre standardisations alternatives ont aussi été testées, en remplaçant la moyenne par la médiane, l'écart type par l'écart interquartile, ou l'échantillon complet par une fenêtre glissante, puis en ré-estimant la forêt aléatoire sur les séries ainsi transformées. Le premier résultat est que les pondérations sont rigoureusement identiques à celles de la référence pour toutes les transformations affines croissantes à coefficients constants dans le temps. En effet, un arbre de décision ne voit pas les valeurs d'une variable, il n'en voit que l'ordre, puisque chaque division ne dépend que du classement des observations de part et d'autre d'un seuil~; or retrancher une médiane plutôt qu'une moyenne, ou diviser par un écart interquartile plutôt que par un écart type, décale et étire l'axe de chaque série sans jamais modifier l'ordre de ses observations. À graine aléatoire identique, les arbres construits sont donc les mêmes, ainsi que les importances par permutation qui en découlent. La ré-estimation complète du modèle sur les séries standardisées à la médiane et à l'écart interquartile reproduit ainsi, à la précision numérique près, l'indicateur obtenu en appliquant les pondérations publiées à ces mêmes séries (corrélation de 0,998 entre les deux). La pondération de l'indicateur ne doit donc rien à la standardisation retenue, ce qui est une propriété de robustesse.
+ 
+En revanche, l'indicateur dépend de la standardisation, puisque ce sont les valeurs des z-scores, et non leur ordre, qui entrent dans la moyenne pondérée. L'ampleur de cette dépendance varie selon la transformation. Remplacer la moyenne par la médiane en conservant l'écart type déplace chaque série d'une constante et se résume à une translation de l'indicateur d'environ $-0{,}04$ point, la corrélation avec la référence étant de 1,00~; le choix entre moyenne et médiane est donc sans enjeu. Remplacer l'écart type par l'écart interquartile modifie en revanche l'échelle relative des séries~: pour les variables de marché, dont la distribution présente des queues épaisses, l'écart interquartile est petit relativement à l'écart type, si bien que leurs épisodes extrêmes ressortent amplifiés. L'indicateur correspondant reste corrélé à 0,92 à la référence et date les mêmes épisodes, mais son maximum se déplace de 2020-T3 au premier trimestre 2009 (1,07 contre 0,76 pour la référence), la crise financière mondiale, portée par les \emph{spreads}, redevenant l'épisode dominant. Le choix de l'écart type revient ainsi à atténuer le poids des valeurs extrêmes de marché dans la lecture historique.
+ 
+La moyenne glissante, enfin, change la nature de l'objet mesuré, et c'est pour cela qu'elle a été écartée. Deux versions ont été construites, l'une appliquant les pondérations publiées aux z-scores calculés sur fenêtre glissante (8 trimestres), l'autre ré-estimant la forêt sur ces mêmes z-scores. Contrairement au cas précédent, la ré-estimation ne redonne pas les pondérations publiées, et les deux versions divergent entre elles (corrélation de 0,95)~: la standardisation glissante est une transformation qui varie dans le temps, chaque observation étant rapportée à une norme différente, ce qui modifie l'ordre des observations et donc les arbres eux-mêmes. Surtout, l'indicateur obtenu n'a plus grand-chose de commun avec la référence, la corrélation tombant à 0,2--0,3. Son maximum se situe fin 2011, son amplitude est plus que doublée (écart type de 0,55 contre 0,24), ses deux premières années disparaissent dans l'initialisation de la fenêtre, et il passe en territoire négatif fin 2022 ($-0{,}3$ contre $+0{,}6$ pour la référence) au moment même où le choc d'inflation dégradait les conditions de financement.En rapportant chaque trimestre à la norme des trimestres récents, la version glissante mesure une accélération par rapport au passé proche, non un niveau par rapport à l'histoire~: dès qu'un déséquilibre persiste, la norme glissante le rattrape et le signal s'éteint. C'est une propriété souhaitable pour un indicateur de cycle ou de momentum, elle est contraire à l'objet de l'outil, qui est de mesurer un niveau de vulnérabilité, l'endettement élevé restant une vulnérabilité même lorsqu'il est élevé depuis longtemps.
+ 
+La spécification publiée, moyenne et écart type sur l'échantillon complet, se justifie donc par la nature de l'objet, un niveau rapporté à la norme historique, et par la conservation du début de la période. Elle a néanmoins deux contreparties. La première est le traitement des extrêmes, discuté ci-dessus, la référence lissant davantage les épisodes de marché que ne le ferait une échelle interquartile. La seconde est que la norme calculée sur l'échantillon complet incorpore de l'information postérieure à chaque date~: la valeur de l'indicateur affichée pour 2012 utilise des moyennes et des écarts types qui incluent les années 2013 à 2026, de sorte que la lecture rétrospective de l'historique ne coïncide pas avec ce qu'un utilisateur aurait vu en temps réel, critique déjà adressée au \emph{credit-to-GDP gap} par \textcite{edge2011} et qui rejoint la discussion de la section~\ref{sec:lag}. La version glissante est, de ce point de vue, la seule calculable en temps réel sans révision de l'historique, mais au prix d'un changement d'objet~; l'arbitrage retenu privilégie la cohérence conceptuelle sur la calculabilité en temps réel. Les graphiques des cinq versions figurent en annexe~\ref{annexe:figures}.
+Le choix de la forêt aléatoire s'est par ailleurs imposé face à une régression logistique plus classique et à d'autres modèles d'apprentissage, en particulier un modèle de \emph{gradient boosting}, pour des raisons de performance, de simplicité et de stabilité. 
+
+\subsection{La contrainte du temps réel et la variante à décalages alignés sur la disponibilité des données}
+\label{sec:lag}
+
+Un indicateur destiné au suivi en continu se heurte à la difficulté de la disponibilité des données. À la date où il est calculé, une partie des composantes n'est pas encore publiée. Les variables de marché (\emph{spreads}, prime de CDS, écart OAT--Bund) et les enquêtes trimestrielles (conditions d'octroi, contraintes de crédit) sont disponibles au trimestre courant~; les comptes financiers dont sont issus les ratios de dette, le service de la dette, les taux de crédit et les prix immobiliers le sont avec un à trois trimestres de retard. Au moment de l'arrêté des données de la publication, trois trimestres restaient ainsi incomplets, et il en va de même des trois trimestres de 2026 dans la mise à jour d'août. La version publiée traite ce décalage en prolongeant chaque série manquante par sa dernière valeur observée. Les derniers points de l'indicateur combinent donc des observations et des valeurs figées, et c'est à ce titre qu'ils sont signalés comme provisoires dans les graphiques. Cette solution est transparente mais fragile, car elle suppose qu'aucune des variables manquantes ne bouge, hypothèse précisément contredite lors des retournements que l'indicateur a pour objet de signaler, comme celui de 2026 l'illustre.
+
+Une variante a été développée pour traiter ce problème. Chaque variable est décalée du nombre de trimestres qui la sépare de sa dernière observation disponible, de sorte que le modèle apprend la relation entre les épisodes de crise à la date $t$ et les variables telles qu'elles sont effectivement connues en $t$. Les six variables disponibles en temps réel ne sont pas décalées~; les onze autres le sont d'un à trois trimestres selon leur calendrier de publication [insérer le tableau des décalages par variable, imprimé par le script]. La forêt est ré-estimée sur cette base alignée, avec les mêmes hyperparamètres et la même partition que le modèle de référence, et l'indicateur est reconstruit avec les pondérations qui en résultent, appliquées aux valeurs décalées. Cette construction diffère d'une spécification à horizon fixe puisqu'elle ne cherche pas à prédire une crise quatre trimestres à l'avance, mais à produire à la date $t$ un diagnostic n'utilisant que l'information disponible en $t$.
+
+La comparaison des deux versions fait apparaître le coût de cet alignement. [Insérer les métriques du modèle aligné sur le jeu test, issues du script~: exactitude, kappa, sensibilité, spécificité et AUC, en regard de celles du modèle de référence.] Les pondérations [décrire à partir de \texttt{Poids\_variables\_lag4.xlsx}~: hiérarchie conservée ou non, poids des catégories]. Sur l'indicateur lui-même, la corrélation entre la version alignée et la version publiée est de 0,89 sur 2010--2026, mais la version alignée est systématiquement en retard d'un trimestre. La corrélation croisée est maximale (0,92) lorsque la version alignée est avancée d'un trimestre, et son maximum se situe au premier trimestre 2021 (0,86) contre le troisième trimestre 2020 pour la version publiée (0,85). Au deuxième trimestre 2020, au c\oe ur du choc, la version alignée s'établit à 0,50 contre 0,76 pour la version publiée. Ce retard est mécanique, les variables d'endettement, qui portent l'essentiel du poids, étant celles qui sont décalées.
+
+C'est sur cette base que la version publiée a été conservée. La variante alignée résout le problème du prolongement des dernières valeurs, mais au prix d'un signal retardé d'un trimestre sur les variables qui comptent le plus, ce qui affaiblit le signal de l'indicateur en temps réel. Le prolongement par la dernière valeur, quant à lui, n'affecte que les trois derniers points, est explicitement signalé comme provisoire et est corrigé à chaque mise à jour~; ses erreurs sont bornées par la variation trimestrielle des séries de comptes financiers, qui est faible hors choc majeur. Le choix est donc celui d'un signal contemporain mais provisoire en fin de période, plutôt que d'un signal définitif mais retardé. Le problème de fond, celui du comportement de l'indicateur sur données de première publication, n'est traité par aucune des deux versions et demeure une extension (chapitre~\ref{chap:critique}).
+
+\subsection{Robustesse de la pondération à la séparation de l'échantillon}
+\label{sec:robustesse-split}
+
+La pondération publiée repose sur une seule séparation aléatoire de l'échantillon en un jeu d'apprentissage (70~\%) et un jeu test (30~\%), obtenue par un tirage de Bernoulli à chaque trimestre. Ce choix soulève deux questions distinctes. La première est celle de l'aléa d'échantillonnage. Un autre tirage aurait-il produit une autre hiérarchie de variables et, partant, un autre indicateur~? La seconde est celle de la structure temporelle des données. Des trimestres consécutifs de z-scores sont fortement autocorrélés, si bien qu'un trimestre de test entouré de trimestres d'apprentissage est presque déjà connu du modèle, ce qui tend à surestimer les performances hors échantillon \parencite{bergmeir2018, roberts2017}. Huit variantes de séparation ont été mises en œuvre, le modèle et ses hyperparamètres étant maintenus constants. Chacune répond à l'une des deux questions, et leur logique peut se décrire simplement.
+
+Trois variantes traitent de l'aléa du tirage. La réplication (M0) refait exactement le tirage publié avec la même graine aléatoire, pour vérifier que l'on retrouve les pondérations du Trésor-Éco à partir des données actuelles~; elle sert de point de contrôle. Le tirage stratifié (M1) impose ce que le tirage de Bernoulli ne garantit pas, à savoir exactement 70~\% des trimestres en apprentissage et la même proportion de trimestres de crise dans les deux jeux, ce qui neutralise le hasard de la composition. La répétition (M6) recommence le tirage publié deux cents fois avec des graines différentes et estime autant de forêts~; on obtient ainsi, pour chaque variable, non plus une pondération mais une distribution de pondérations, dont on peut lire la moyenne, l'écart type et la position du chiffre publié.
+
+Quatre variantes traitent de la structure temporelle. La séparation chronologique (M2) prend les trois premiers quarts de la période (1999 à mi-2017) pour apprendre et le dernier quart pour tester, comme le ferait un utilisateur qui aurait estimé le modèle en 2017 et l'aurait appliqué depuis~; le jeu test contient l'épisode de 2020, que le modèle n'a jamais vu. La séparation chronologique inversée (M3) fait le contraire, apprentissage sur 2007--2025 et test sur 1999--2007, sans intention prospective, mais pour savoir si la hiérarchie des variables dépend de l'époque sur laquelle on apprend. Le tirage par blocs annuels (M4) tire au sort des années entières plutôt que des trimestres isolés, de sorte qu'un trimestre de test n'est jamais entouré de trimestres d'apprentissage quasi identiques~; c'est la version la plus honnête d'un tirage aléatoire sur données autocorrélées. Le \emph{leave-one-crisis-out} (M5) retire tour à tour chacun des quatre épisodes de crise, avec une marge d'un an de part et d'autre, estime le modèle sur tout le reste et lui demande de reconnaître l'épisode retiré~; c'est le test le plus exigeant, puisqu'il mesure la capacité à détecter une crise d'une nature jamais rencontrée. Une validation croisée à origine glissante (M7), qui ré-estime le modèle à intervalles réguliers sur un historique croissant comme le ferait un suivi opérationnel, complète le dispositif.
+
+Une dernière variante (M8) supprime toute séparation et estime la forêt sur les 107 trimestres, la performance étant mesurée sur les observations \emph{out-of-bag}, c'est-à-dire, pour chaque trimestre, par les seuls arbres qui ne l'ont pas utilisé lors de leur construction. Elle répond à la question de savoir si la partition 70/30 est nécessaire pour une forêt aléatoire, dont la construction contient déjà sa propre validation.
+
+Pour chaque variante, on compare à la référence le jeu de pondérations, l'indicateur composite reconstruit sur 2009--2026 et les métriques de classification. Le détail des protocoles, des pondérations et des graphiques de chaque version de l'indicateur figure en annexe~\ref{annexe:robustesse}~; le tableau~\ref{tab:robustesse-synthese} en donne la synthèse.
+
+\begin{table}[htbp]
+\centering
+\caption{Synthèse des tests de robustesse à la séparation train/test}
+\label{tab:robustesse-synthese}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Variante & Spearman & Corr. & Écart max. & AUC & Sensib. & Spécif. \\
+ & poids & indic. & poids & & & \\
+\midrule
+M0 Réplication du tirage        & 1,00 & 1,00 & 0,000 & 0,99 & 1,00 & 0,92 \\
+M1 Tirage stratifié             & 0,89 & 0,96 & 0,031 & 0,91 & 0,71 & 1,00 \\
+M2 Chronologique                & 0,91 & 0,96 & 0,038 & 0,64 & 0,00 & 1,00 \\
+M3 Chronologique inversé        & 0,47 & 0,85 & 0,095 & 0,94 & 0,60 & 1,00 \\
+M4 Blocs annuels                & 0,77 & 0,95 & 0,044 & 0,74 & 0,67 & 0,85 \\
+M5 \emph{Leave-one-crisis-out}  & 0,87 & 0,92 & 0,049 & 0,78 & 0,11 & 0,84 \\
+M6 200 tirages                  & 0,89 & 0,96 & 0,032 & 0,95 & 0,67 & 0,96 \\
+M7 Origine glissante            & 0,93 & 0,95 & 0,045 & 0,67 & 0,34 & 0,80 \\
+M8 Échantillon complet (OOB)    & 0,87 & 0,94 & 0,041 & 0,95 & 0,72 & 0,95 \\
+\bottomrule
+\end{tabular}
+\begin{flushleft}\footnotesize
+\emph{Lecture~:} corrélation de rang des pondérations et corrélation de l'indicateur avec la référence publiée, écart absolu maximal sur une pondération, métriques de classification sur le jeu test, période 2009-T1 à 2026-T3. M2 apprend sur 1999-T1 à 2017-T2, M3 sur 2007-T2 à 2025-T3. Pour M5, M6 et M7, pondérations et métriques sont des moyennes sur les épisodes, les tirages ou les fenêtres (écart type de l'AUC de 0,20, 0,04 et 0,13, de la sensibilité de 0,21, 0,19 et 0,46)~; pour M8, les métriques sont calculées sur les prédictions \emph{out-of-bag}. \emph{Source~:} calculs de l'auteure.
+\end{flushleft}
+\end{table}
+ 
+Trois enseignements se dégagent. Le premier est que la hiérarchie des vulnérabilités est robuste au mode de séparation. La réplication du tirage publié (M0) reproduit exactement les pondérations publiées, ce qui valide la chaîne de calcul~; à l'exception de la variante chronologique inversée, qui n'apprend que sur la période postérieure à 2007, la corrélation de rang entre les pondérations alternatives et les pondérations publiées est comprise entre 0,77 et 0,93, la dette des ménages ou le \emph{spread High Yield} occupe le premier rang dans toutes les variantes, et le bloc endettement concentre entre 55 et 62~\% du poids total partout hors M3 (38~\%). Quatorze des dix-sept pondérations publiées se situent à moins de deux écarts types de la moyenne des deux cents tirages~; les trois exceptions sont la dette des SNF (0,074 contre 0,106 en moyenne) et la prime de CDS, que le tirage de référence sous-pondère, et le durcissement des conditions d'octroi aux SNF, qu'il surpondère, le service de la dette des SNF se situant juste au bord de cette bande (0,075 contre 0,101). Le deuxième enseignement porte sur l'indicateur lui-même. Toutes les versions datent les mêmes épisodes et les mêmes points de retournement, avec un maximum au troisième ou quatrième trimestre 2020, un second pic fin 2011 et un troisième fin 2022, et leur corrélation avec l'indicateur publié est comprise entre 0,92 et 0,96 (0,85 pour M3). L'écart se loge dans le niveau des phases calmes. Les versions alternatives, en donnant plus de poids à l'endettement des SNF, se situent en moyenne de 0,03 à 0,07 au-dessus de la référence sur l'ensemble de la période (M3, qui pondère peu l'endettement, se situant au contraire en dessous) et de 0,07 à 0,16 au-dessus sur 2024--2026~; au troisième trimestre 2026, elles s'établissent entre 0,18 et 0,25 contre 0,08 pour la référence, de sorte que la remontée décrite à la section précédente est plus marquée dans toutes les variantes que dans la version publiée. Le troisième enseignement concerne la performance de classification, qui n'est pas robuste. La sensibilité de 100~\% et l'AUC de 0,99 du tirage de référence se situent dans la queue supérieure de la distribution des deux cents tirages, dont la sensibilité moyenne est de 0,67. Surtout, dès que le jeu test est séparé dans le temps du jeu d'apprentissage, la capacité de détection s'effondre. Aucun trimestre de l'épisode 2020 n'est détecté lorsque le modèle n'apprend que sur 1999--2017, l'exclusion successive de chaque épisode ne laisse qu'une sensibilité moyenne de 0,11, l'épisode de 2008 étant le seul partiellement reconnu (0,43), et la ré-estimation à origine glissante, qui reproduit l'usage opérationnel, ne reconnaît en moyenne qu'un tiers des trimestres de crise (AUC de 0,67), trois des cinq fenêtres évaluables n'en détectant aucun.
+ 
+Le diagnostic final est donc que la pondération par forêt aléatoire produit une hiérarchie de vulnérabilités et un profil temporel de l'indicateur robustes à la spécification de la séparation, mais que la performance de classification du modèle sous-jacent ne l'est pas, ce qui confirme que l'indicateur doit être lu comme un outil de diagnostic du niveau des vulnérabilités et non comme un prédicteur des crises. Au regard de la question de recherche, ce résultat délimite précisément ce que l'apprentissage automatique apporte à la calibration du CCyB. Il apporte une pondération transparente, stable et décomposable, dont les points de retournement coïncident d'une variante à l'autre, ce qui en fait un support crédible du faisceau d'indicateurs sur lequel s'appuie le pouvoir discrétionnaire orienté du HCSF. Il n'apporte pas de règle de décision. La sensibilité du niveau de l'indicateur en phase calme au tirage d'échantillonnage, de l'ordre de 0,1 point soit un tiers de l'écart type de la série, interdit d'y attacher un seuil de déclenchement, et l'incapacité du modèle à reconnaître un épisode qu'il n'a pas vu rappelle que quatre épisodes de crise ne suffisent pas à apprendre une relation prédictive. L'indicateur éclaire la décision, il ne la remplace pas, ce qui est cohérent avec la doctrine macroprudentielle européenne et avec l'usage qui en est fait au sein du pôle.
+
+[Le cas échéant~: comparaison du profil temporel de l'indicateur avec le d-SRI de la BCE et le CISS sur période commune, si les séries publiques le permettent.]
+
+% ============================================================
+% CHAPITRE 4
+% ============================================================
+\chapter{Prise de recul~: la pratique à l'épreuve de la formation}
+\label{chap:critique}
+
+Ce chapitre procède à l'exercice réflexif attendu d'un mémoire d'alternance. Il ne s'agit pas d'énumérer des limites de convention, mais de confronter méthodiquement le protocole opérationnel aux exigences enseignées en master, d'expliquer les arbitrages effectués sous contrainte, et d'en tirer des améliorations concrètes.
+
+\section{Ce que l'économétrie du master dit du protocole opérationnel}
+
+\emph{La partition apprentissage-test sur données temporellement dépendantes.} Le modèle est évalué sur une partition 70/30 des observations. Or les cours d'économétrie des séries temporelles enseignent que les observations trimestrielles sont autocorrélées et que les épisodes de crise sont de8s blocs contigus. Si la partition est aléatoire, des trimestres d'un même épisode se retrouvent de part et d'autre de la frontière apprentissage-test, et le modèle est évalué sur des observations quasi identiques à celles qui ont servi à l'estimer. \textcite{bergmeir2018} montrent que la validation croisée standard n'est valide en séries temporelles que sous des conditions restrictives~; pour une cible aussi persistante qu'un indicateur de crise, la bonne pratique est une validation par blocs temporels ou une évaluation strictement récursive. Les tests du chapitre~\ref{chap:resultats} mesurent l'ampleur du phénomène. Lorsque le jeu test est constitué de blocs annuels, l'AUC passe de 0,99 à 0,74~; lorsqu'il est strictement postérieur au jeu d'apprentissage, le modèle ne prédit plus aucun trimestre de crise et l'exactitude de 0,82 n'est que le taux de non-crise de la période~; lorsqu'un épisode entier est retiré de l'apprentissage, la sensibilité moyenne tombe à 0,11~; lorsque le modèle est ré-estimé à intervalles réguliers sur un historique croissant, elle n'est que de 0,34. Les performances remarquables du modèle, et singulièrement la sensibilité de 100~\%, mesurent donc pour l'essentiel la capacité du modèle à reconnaître des épisodes qu'il a déjà partiellement vus, non à en détecter de nouveaux. Ce point relativise les métriques affichées sans invalider l'usage qui en est fait ici. La finalité du modèle n'est pas la prévision hors échantillon mais l'extraction d'une structure d'importance, et les mêmes tests montrent que cette structure, elle, résiste au changement de partition, la corrélation de rang des pondérations avec la référence restant comprise entre 0,77 et 0,93 dans toutes les variantes qui apprennent sur l'ensemble de la période. La distinction entre ce que le modèle sait prédire et ce qu'il sait hiérarchiser, avancée comme hypothèse dans la publication, est ainsi établie empiriquement.
+
+\emph{L'inférence sur cinq épisodes.} La base du CERS recense cinq épisodes de tensions pour la France, dont quatre tombent dans l'échantillon d'estimation, et deux d'entre eux (la pandémie, et dans une moindre mesure l'épisode 1991--1999, antérieur au début des données) ont un statut particulier. La théorie de l'apprentissage statistique rappelle que la performance d'un classifieur se juge à l'échelle des événements indépendants, non des observations. Avec quatre événements, l'incertitude d'échantillonnage sur toute métrique est considérable. La répétition du tirage de référence sur deux cents graines en donne une première mesure. À modèle et données constants, la sensibilité varie entre 0,17 et 1,00 selon le tirage (0,67 en moyenne, écart type 0,19), et l'AUC entre 0,79 et 1,00, de sorte que les 96,8~\% de précision publiés ne peuvent être assortis d'aucun intervalle de confiance sérieux. Le kappa de Cohen à 0,9 écarte l'explication par le seul déséquilibre des classes, mais ne répond pas à la question de la représentativité. Rien ne garantit que la prochaine crise ressemble aux quatre précédentes, limite consubstantielle à tout apprentissage sur crises rares que la littérature des \emph{early warning indicators} affronte depuis \textcite{kaminsky1999}, et que le résultat du \emph{leave-one-crisis-out} illustre sans détour, aucun des épisodes de 2002, de 2011 et de 2020 n'étant reconnu par un modèle qui ne l'a pas vu.
+
+\emph{Le statut du choc pandémique dans l'échantillon d'entraînement.} L'épisode 2020--2021 est d'origine exogène au système financier. Les variables financières s'y sont dégradées en conséquence du choc sanitaire, non en annonce de celui-ci. L'inclure dans la cible revient à demander au modèle d'associer des configurations financières à un événement qu'elles ne pouvaient signaler, ce qui peut déformer la structure d'importance. L'exercice de \emph{leave-one-crisis-out} fournit un premier élément. Un modèle estimé sans l'épisode pandémique n'en reconnaît aucun trimestre, ce qui est cohérent avec son caractère exogène, et la séparation chronologique, qui exclut aussi cet épisode de l'apprentissage, produit des pondérations très proches de la référence (corrélation de rang de 0,89). L'influence de l'épisode sur la structure d'importance paraît donc limitée, sans que l'exercice permette encore de l'isoler complètement [les pondérations propres à chaque estimation du \emph{leave-one-crisis-out}, en particulier celle qui exclut 2020--2021, restent à extraire du script pour trancher].
+
+\emph{Interprétation des importances sous prédicteurs corrélés.} Les dix-sept variables sont fortement corrélées au sein des catégories, par construction économique (ratio de dette et charge de la dette d'un même secteur, par exemple). Le traitement présenté à la section~\ref{sec:multico} a retiré les redondances de substitution, mais a délibérément conservé les variables d'endettement dont la corrélation tient à une tendance commune. Or \textcite{strobl2008} montrent que l'importance de permutation répartit l'importance de manière instable entre prédicteurs corrélés~; la hiérarchie fine des poids à l'intérieur d'une catégorie est donc moins robuste que la hiérarchie entre catégories, et c'est à ce niveau agrégé que l'interprétation doit se tenir. La distribution des pondérations sur deux cents tirages confirme cette lecture. Le poids du bloc endettement varie de 55 à 62~\% selon les variantes, et celui des deux premières variables est stable (écart type de 0,015 pour la dette des ménages, pour une moyenne de 0,163)~; en revanche, le coefficient de variation des poids dépasse 0,3 pour les huit variables de queue, et la répartition entre dette et service de la dette des SNF, deux séries étroitement liées, est précisément celle où le tirage de référence s'écarte le plus de la distribution. La cohérence de la hiérarchie obtenue avec la littérature est rassurante, mais ne constitue pas une validation. Une pondération conforme aux attentes peut résulter de biais qui se compensent.
+
+\section{Difficultés techniques rencontrées et arbitrages}
+
+La conduite du projet a rencontré trois ordres de difficultés, dont la restitution éclaire l'écart entre l'économétrie enseignée et l'économétrie pratiquée. Le premier est l'hétérogénéité des données. Dix-sept séries de quatre sources, aux historiques inégaux, aux calendriers de publication différents et aux conventions parfois divergentes, ont dû être assemblées, ce qui a représenté une part substantielle du temps de la mission [détailler~: chaîne de traitement des scripts \texttt{1.~Construction\_data.R} et \texttt{2.~Indicateurs\_credit.R}, problèmes concrets rencontrés]. La gestion des valeurs manquantes en début de période a été déléguée à l'algorithme plutôt que traitée par imputation, choix défendable mais qui déplace le problème davantage qu'il ne le résout, la manière dont la forêt traite ces observations restant peu transparente.
+
+Le deuxième est la contrainte du temps réel. Les données arrêtées début mai 2026 pour la publication laissaient les trimestres postérieurs au T3 2025 incomplets, et la mise à jour d'août 2026, qui prolonge l'indicateur au T3 2026, laisse dans la même situation les trois trimestres de 2026, de sorte que l'indicateur combine toujours en fin de période observations et valeurs prolongées~; surtout, l'ensemble de l'historique est constitué de séries révisées, alors que l'usage opérationnel de l'outil se fait sur données de première publication. La critique de \textcite{edge2011} au \emph{credit-to-GDP gap} s'applique ainsi, dans une mesure à déterminer, à l'indicateur lui-même. La variante à décalages alignés de la section~\ref{sec:lag} traite la première de ces difficultés, celle des trimestres non encore publiés, et montre ce qu'elle coûte en réactivité~; elle ne traite pas la seconde, celle des révisions, que seule une base de données vintage permettrait de mesurer. La réplication du tirage de référence reproduit exactement les pondérations publiées à données et graine identiques~; l'effet propre des révisions de données, lui, reste à mesurer et suppose de conserver les millésimes successifs des séries.
+
+Le troisième ordre de difficulté relève des arbitrages entre rigueur et calendrier. La perspective de publication du Trésor-Éco et les échéances du suivi opérationnel ont conduit à stabiliser une spécification à une date donnée, en écartant des raffinements dont le rapport coût-bénéfice était défavorable dans le temps imparti, à savoir la validation temporelle systématique, l'importance conditionnelle et les exercices de sensibilité à la composition de la cible. Ces choix, rationnels dans le cadre de la mission, sont exactement ceux qu'un référé académique aurait contestés. Le présent mémoire a permis de conduire, hors des contraintes de la publication, les deux premiers de ces exercices~; leur résultat, qui confirme la structure de pondération tout en relativisant les métriques de performance, montre que l'arbitrage initial n'a pas altéré le produit livré, mais qu'il en avait laissé le statut sous-déterminé. En donner la justification opérationnelle et la contrepartie méthodologique est l'objet même de ce chapitre.
+
+\section{Ce que la pratique dit en retour de la formation}
+
+La confrontation joue dans les deux sens. Les cours d'économétrie et d'apprentissage statistique du master fournissent les outils qui permettent d'identifier les fragilités du protocole. Sans la théorie de la validation, la sensibilité de 100~\% se lirait comme un succès et non comme un signal d'alerte, et c'est bien elle qui a conduit à concevoir les tests du chapitre~\ref{chap:resultats}. Inversement, la pratique révèle des dimensions absentes de la formation, le coût réel de la constitution des données, l'arbitrage permanent entre perfection méthodologique et utilité dans les délais, la nécessité de produire des résultats interprétables par des décideurs non techniciens, qui a pesé sur le choix d'un indicateur linéairement décomposable plutôt que d'un score de probabilité opaque. L'écart entre la fonction de prévision du modèle et l'indicateur publié, assumé dans la méthodologie, est de ce point de vue exemplaire. Il sacrifie de l'information prédictive à l'exigence de lisibilité, arbitrage dont la théorie de la décision rend compte mais que seule la pratique fait éprouver, et que les tests de robustesse justifient a posteriori, puisque c'est précisément la partie lisible de l'outil, la hiérarchie des pondérations, qui se révèle stable.
+
+\section{Extensions}
+
+Quatre extensions se dégagent par ordre de priorité, les deux premières prolongeant les tests conduits, les deux suivantes ouvrant sur des approches complémentaires. La première est le recours à des mesures d'importance robustes à la corrélation, importance conditionnelle de \textcite{strobl2008} ou valeurs de Shapley, afin de vérifier si la stabilité de la hiérarchie entre catégories se retrouve à l'intérieur de chacune d'elles, là où les tests de séparation montrent que l'importance de permutation hésite entre variables proches. La deuxième est l'achèvement des exercices de sensibilité à la composition de la cible et à l'algorithme, en extrayant les pondérations propres à chaque estimation du \emph{leave-one-crisis-out}, en particulier celle qui exclut l'épisode pandémique, et en menant à terme la comparaison avec le \emph{gradient boosting} dans le cadre défini en annexe~\ref{annexe:robustesse}. La troisième est l'évaluation en temps réel de l'indicateur à partir d'une base de données vintage, seule à même de mesurer l'ampleur du problème de point terminal dont \textcite{edge2011} ont montré la gravité pour le \emph{credit-to-GDP gap}, et que la ré-estimation périodique du modèle en usage opérationnel, dont la validation à origine glissante donne une première image, rend d'autant plus nécessaire. La quatrième est l'articulation avec une approche \emph{growth-at-risk} à la \textcite{adrian2019}, qui relierait le niveau de l'indicateur à la distribution de la croissance future et donnerait un contenu quantitatif à la notion de vulnérabilité que l'indicateur laisse volontairement qualitative.
+
+% ============================================================
+% CONCLUSION
+% ============================================================
+\chapter*{Conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+\markboth{Conclusion}{}
+
+Ce mémoire a présenté la construction, les résultats et la critique d'un indicateur composite de vulnérabilités du système financier français développé à la Direction générale du Trésor. À la question de recherche posée en introduction, il permet d'apporter une réponse en trois temps.
+
+Un indicateur composite pondéré par apprentissage automatique fournit d'abord un diagnostic utile et historiquement cohérent des vulnérabilités financières françaises. L'indicateur restitue les épisodes de tensions identifiés par ailleurs, et sa décomposition par catégorie révèle des dynamiques que le niveau agrégé masque, comme l'accumulation d'endettement privé sous le calme apparent de la période de \emph{quantitative easing}, ou, en 2026, la transmission par le canal du crédit bancaire d'un choc que les marchés n'ont pas encore répercuté. La hiérarchie des pondérations, dominée par l'endettement des ménages et des sociétés non financières, est conforme aux enseignements les plus robustes de la littérature des crises financières.
+
+La robustesse de ce diagnostic est ensuite établie dans un périmètre précis. Les tests conduits sur la séparation de l'échantillon montrent que la hiérarchie des vulnérabilités et la datation des épisodes sont stables quelle que soit la partition, tandis que la performance de classification du modèle ne l'est pas, celui-ci ne détectant plus les crises dès qu'il est évalué sur des périodes ou des épisodes qu'il n'a pas vus. Le niveau de l'indicateur en phase calme dépend en outre du tirage d'échantillonnage à hauteur d'un dixième de point, ce qui interdit de lui attacher un seuil. À ces résultats s'ajoutent les limites que les tests n'ont pas levées, la rareté des épisodes de crise qui borne l'inférence possible, la fragilité de l'importance de permutation à l'intérieur des catégories de variables corrélées, et le comportement de l'indicateur en temps réel qui reste à établir. L'ensemble n'invalide pas l'outil, mais en précise le statut. La structure de pondération est robuste, le pouvoir prédictif du modèle qui la produit ne l'est pas, et l'interprétation de l'indicateur doit rester structurelle plutôt que prédictive.
+
+Ce statut, enfin, est précisément celui que la doctrine du pouvoir discrétionnaire orienté assigne aux indicateurs quantitatifs. L'indicateur éclaire la calibration du coussin contracyclique, comme l'illustre la cohérence entre son diagnostic récent et le maintien du coussin à 1~\% malgré un \emph{credit-to-GDP gap} négatif~; il ne la détermine pas, et ne doit pas le faire. La traduction d'un diagnostic de vulnérabilité en décision macroprudentielle requiert un jugement intégrant la capacité d'absorption du système bancaire, les conditions macroéconomiques et l'interaction avec les autres politiques publiques.
+
+Du point de vue de la formation, enfin, l'exercice aura montré que la valeur des enseignements du master ne réside pas seulement dans les techniques qu'ils transmettent, mais dans la capacité critique qu'ils installent, savoir ce que vaut une métrique, ce que mesure une importance, ce que permet un échantillon. Réciproquement, l'alternance enseigne ce que les cours ne peuvent transmettre, l'art des arbitrages sous contrainte qui fait la différence entre l'économétrie des manuels et celle qui sert, dans les délais, une décision publique.
+
+% ============================================================
+\printbibliography[heading=bibintoc,title={Bibliographie}]
+
+% ============================================================
+\begin{appendices}
+
+\chapter{Environnement de travail et missions de l'alternance}
+\label{annexe:mission}
+
+\section{La Direction générale du Trésor~: histoire et organisation}
+La DG Trésor est une direction du ministère de l'Économie, des Finances et de la Souveraineté industrielle et numérique. Elle compte environ 1300 agents, dont la moitié dans 105 pays étrangers au sein d'ambassades et de représentations françaises auprès des institutions européennes et internationales.
+
+[Bref historique de la direction~; organigramme en figure~; positionnement du service, de la sous-direction et du pôle. 1 à 1,5 page.]
+
+\section{Le pôle d'analyse économique du secteur financier}
+[Missions du pôle~; articulation avec la Banque de France dans le secrétariat du HCSF~; place dans le circuit de préparation des décisions. 0,5 à 1 page.]
+
+\section{Périmètre des missions effectuées}
+[Liste des missions de l'alternance~: indicateur de vulnérabilités (mission principale développée dans le corps du mémoire), notes et contributions au suivi du secteur bancaire, autres travaux~; calendrier de l'année~; environnement technique (R, sources Bloomberg, BRI, BdF, BCE)~; circuit de validation et de publication d'un Trésor-Éco. 1,5 à 2 pages.]
+
+\chapter{Le coussin contracyclique dans l'Union européenne~: pratiques nationales et enseignements empiriques}
+\label{annexe:ccyb-ue}
+
+Cette annexe complète la section~\ref{sec:ccyb} du chapitre~\ref{chap:litterature}. Elle présente la situation des principaux pays de l'Union en matière de CCyB, les doctrines qui la sous-tendent et les résultats de la littérature empirique sur les effets du relâchement du coussin.
+
+\section{Panorama des taux en vigueur}
+
+Le panorama européen des taux de CCyB en vigueur présente une dispersion remarquable, de 0~\% en Italie à 2~\% aux Pays-Bas et en Suède, que la position dans le cycle du crédit ne suffit pas à expliquer. Les gaps de crédit sont en effet négatifs dans la quasi-totalité des juridictions considérées, de l'ordre de $-1$ point en Allemagne à $-14$ points en France et $-23$ points en Grèce, de sorte que la règle bâloise commanderait presque partout un coussin nul. La dispersion observée reflète donc des choix de doctrine, et au premier chef l'adoption ou non d'un taux neutre positif (\emph{positive neutral rate}, PNR). Le tableau~\ref{tab:ccyb_ue} récapitule la situation des principaux pays de l'Union, complétée du Royaume-Uni à titre de comparaison.
+
+\begin{table}[H]
+\centering
+\caption{Le CCyB dans les principaux pays de l'UE (situation en août 2026)}
+\label{tab:ccyb_ue}
+\footnotesize
+\begin{tabular}{p{1.9cm}p{1.7cm}p{2.3cm}p{1.6cm}p{6.2cm}}
+\toprule
+Pays & Taux en vigueur & Taux annoncé (cible) & Taux neutre positif & Éléments saillants \\
+\midrule
+France & 1\,\% (janv.\ 2024) & — & Non & Pouvoir discrétionnaire orienté~; gap bâlois de $-14{,}1$~pt (T3~2025) commandant mécaniquement 0\,\% \\
+Allemagne & 0{,}75\,\% (2022) & — & Non & Complété d'un coussin sectoriel immobilier résidentiel, abaissé de 2\,\% à 1\,\% en avril 2025 \\
+Pays-Bas & 2\,\% (mai 2024) & — & Oui (2\,\%) & PNR calibré sur les pertes historiques de pointe~; contrepartie de la baisse du SyRB de 3\,\% en 2020 \\
+Italie & 0\,\% & — & Non & Lecture proche de la règle bâloise~; gap d'environ $-8$~pt (T3~2025) \\
+Espagne & 0{,}5\,\% & 1\,\% (oct.\ 2026) & Oui (1\,\%) & Cadre révisé en mai 2024~; trois niveaux de risque cyclique, relâchement intégral prévu en cas de choc \\
+Belgique & 1{,}25\,\% (juill.\ 2026) & — & Non & Intégration du coussin sectoriel hypothécaire dans le CCyB au 1\up{er} juillet 2026, exigences totales simplifiées et réduites \\
+Irlande & 1{,}5\,\% (juin 2024) & — & Oui (1{,}5\,\%) & PNR préféré en 2022 à un SyRB pour couvrir les risques d'une petite économie très ouverte \\
+Suède & 2\,\% (juin 2023) & — & Oui (2\,\%) & Relâchement intégral de 2{,}5\,\% à 0\,\% en mars 2020, expérience fondatrice du cadre PNR de 2021 \\
+Portugal & 0{,}75\,\% (janv.\ 2026) & — & Oui (0{,}75\,\%) & Première activation décidée fin 2024 hors signal du gap, motivée par la rentabilité et la solvabilité du secteur \\
+Pologne & 1\,\% (sept.\ 2025) & 2\,\% (sept.\ 2026) & Oui (2\,\%) & Principes publiés de relâchement et de reconstitution, celle-ci au plus tôt deux ans après un relâchement \\
+\midrule
+Royaume-Uni & 2\,\% (juill.\ 2023) & — & Oui (2\,\%) & PNR relevé de 1\,\% à 2\,\% en 2019 avec compensation sur le Pilier~2A et les exigences de résolution~; revue du cadre de capital engagée dans les FSR de décembre 2025 et juillet 2026 \\
+\bottomrule
+\end{tabular}
+\par\vspace{0.2cm}
+\raggedright\footnotesize Sources~: CERS (tableau des taux notifiés, mise à jour du 4 août 2026)~; décisions des autorités nationales désignées (HCSF, BaFin, DNB, Banque d'Italie, Banque d'Espagne, BNB, Banque centrale d'Irlande, Finansinspektionen, Banque du Portugal, Comité de stabilité financière polonais, Bank of England)~; \textcite{bcbs2024pnr} pour les taux neutres positifs et leurs dates d'entrée en vigueur. Les dates entre parenthèses sont celles d'effet du taux en vigueur.
+\end{table}
+
+\section{Doctrines comparées}
+
+Les cadres nationaux peuvent être ordonnés le long d'un axe allant de la règle au jugement. À une extrémité, l'Italie s'en tient à une lecture proche du référentiel bâlois et maintient un taux nul en présence de gaps négatifs. À l'autre, les juridictions à taux neutre positif ont formalisé une doctrine complète, comportant une cible chiffrée, une méthode de calibration, des conditions de constitution et des principes de relâchement et de reconstitution. Le Comité de Bâle \parencite{bcbs2024pnr} recense dix-sept juridictions dotées d'un tel cadre, dont dix États membres de l'Union hors comité, avec des cibles comprises entre 0{,}5~\% et 2~\%~; les méthodes de calibration relèvent de trois familles, les tests de résistance, dominants au Royaume-Uni et en Espagne, les pertes historiques, fondement du 2~\% néerlandais, et les indicateurs de risque, la BCE développant en complément les approches \emph{losses-to-buffer} et \emph{risk-to-buffer} pour la zone euro. L'introduction d'un PNR s'accompagne fréquemment d'une recomposition de la pile d'exigences plutôt que d'un alourdissement net, les Pays-Bas et l'Estonie ayant substitué le CCyB à un coussin pour risque systémique, le Royaume-Uni ayant compensé la hausse du PNR par une baisse du Pilier~2A, et la Belgique venant de fondre son coussin sectoriel hypothécaire dans le CCyB. Le rapport conjoint BCE-CERS \parencite{ecbesrb2025} relève toutefois que, pour la plupart des pays, l'activation précoce du CCyB n'a pas été compensée par une baisse d'autres exigences. La France, qui maintient un coussin de 1~\% sans cadre de taux neutre formalisé, occupe dans cet ensemble la position intermédiaire décrite au chapitre~\ref{chap:litterature}.
+
+\section{Les effets du relâchement dans la littérature empirique}
+
+L'expérience quasi naturelle la plus étudiée précède le CCyB lui-même. \textcite{jimenez2017} exploitent le provisionnement dynamique espagnol, prototype de coussin contracyclique, et montrent sur données de registre de crédit que les banques dont les provisions ont été relâchées en 2008 ont réduit leur offre de crédit nettement moins que les autres, avec des effets réels sur l'emploi et la survie des entreprises emprunteuses. Les relâchements de mars 2020 fournissent le second corpus. Sur la zone euro, \textcite{couaillier2022} montrent que le relâchement des coussins et des exigences de Pilier~2 a soutenu le crédit, mais que l'effet est concentré sur les banques initialement proches de leurs exigences~; \textcite{dursun2023} identifient sur données suisses un effet positif du relâchement du CCyB sectoriel sur le crédit hypothécaire des banques les plus exposées, et \textcite{mathur2023} trouvent sur données britanniques que le relâchement du CCyB a atténué la contraction du crédit aux entreprises, l'effet passant principalement par les banques dont la marge au-dessus des exigences était faible. \textcite{behn2020} documentent en parallèle la réticence des banques de la zone euro à utiliser les coussins non relâchés, confirmant que la libérabilité effective, et non le niveau du capital, est la variable de politique pertinente.
+
+La lecture d'ensemble est double. Le relâchement fonctionne, au sens où il soutient l'offre de crédit des banques contraintes, mais son efficacité macroéconomique dépend de la distribution des marges de capital au moment du choc, ce qui plaide pour des coussins relâchables suffisamment grands en début de crise~; et les études convergent sur l'importance de la communication, la garantie d'une reconstitution non précipitée conditionnant la disposition des banques à utiliser l'espace libéré. Ces deux enseignements constituent la justification empirique la plus directe du taux neutre positif, dont l'objet est de garantir l'existence d'un volant relâchable face à des chocs que les indicateurs de cycle ne peuvent anticiper, la pandémie en étant l'archétype \parencite{bcbs2024pnr}.
+
+\chapter{Tableaux et graphiques complémentaires}
+\label{annexe:figures}
+[Tableau complet des dix-sept variables et de leurs pondérations~; décompositions par catégorie~; courbe ROC et matrice de confusion du modèle de référence~; comparaison brut/z-score~; indicateur à décalages alignés sur la disponibilité des données (section~\ref{sec:lag}), à partir de \texttt{Donnees\_RFW\_ext\_lag.xlsx}, sur le même format que l'indicateur principal. Les résultats relatifs à la séparation de l'échantillon et à l'algorithme figurent en annexe~\ref{annexe:robustesse}.]
+
+\section{Diagnostic de multicolinéarité}
+\label{annexe:multico}
+
+\begin{table}[htbp]
+\centering
+\caption{Paires de variables corrélées à plus de 0,8 et facteurs d'inflation de la variance, avant et après traitement}
+\label{tab:multico}
+\small
+\begin{tabular}{llcc}
+\toprule
+Variable 1 & Variable 2 & Corrélation & Traitement \\
+\midrule
+Dette ménages & Dette SNF & 0,98 & conservées (tendance commune) \\
+Taux crédits nouveaux ménages & Taux OAT 10 ans & 0,89 & OAT 10 ans retiré \\
+Dette SNF & Service de la dette SNF & 0,88 & conservées (tendance commune) \\
+Dette ménages & Service de la dette SNF & 0,87 & conservées (tendance commune) \\
+Spread HY (net de l'IG) & Spread IG & 0,83 & Spread IG retiré \\
+Taux crédits nouveaux SNF & Taux OAT 10 ans & 0,80 & OAT 10 ans retiré \\
+Contraintes de crédit SNF (SAFE) & Taux OAT 10 ans & $-$0,80 & OAT 10 ans retiré \\
+\bottomrule
+\end{tabular}
+\par\vspace{0.3cm}
+\begin{tabular}{lcc}
+\toprule
+Variable & VIF, 19 variables & VIF, 17 variables \\
+\midrule
+Spread IG & 20,3 & retirée \\
+Taux OAT 10 ans & 16,1 & retirée \\
+Spread HY & 19,3 & 4,4 \\
+Taux crédits nouveaux ménages & 26,5 & 19,3 \\
+Taux crédits nouveaux SNF & 23,8 & 18,3 \\
+Dette SNF & 24,2 & 21,0 \\
+Service de la dette SNF & 15,8 & 15,8 \\
+Contraintes de crédit SNF (SAFE) & 15,7 & 13,8 \\
+Prix immobiliers / revenus & 18,2 & 11,9 \\
+Prime de CDS & 12,2 & 8,9 \\
+Service de la dette ménages & 10,7 & 7,9 \\
+Spread OAT--Bund & 6,9 & 6,4 \\
+\bottomrule
+\end{tabular}
+\begin{flushleft}\footnotesize
+\emph{Note~:} corrélations et VIF calculés sur 2009-T1 à 2025-T2 (66 trimestres), le \emph{spread High Yield} étant exprimé net du \emph{spread investment grade} comme dans le script. Les VIF sont ceux de la régression auxiliaire du script \texttt{multico.R}, qui exclut les deux taux de croissance du crédit et prend la dette des ménages comme variable dépendante~; les variables dont le VIF est inférieur à 5 dans les deux configurations ne sont pas reportées. [Vérifier les valeurs sur les données brutes utilisées lors du test initial.] \emph{Source~:} calculs de l'auteure.
+\end{flushleft}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/multico/correlation_19_variables.pdf}
+% [Carte de chaleur des corrélations entre les dix-neuf variables candidates, produite par multico.R]
+\caption{Matrice des corrélations entre les dix-neuf variables candidates}
+\label{fig:multico-19}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/multico/correlation_17_variables.pdf}
+% [Carte de chaleur des corrélations entre les dix-sept variables retenues]
+\caption{Matrice des corrélations entre les dix-sept variables retenues}
+\label{fig:multico-17}
+\end{figure}
+
+
+\section{Variantes de standardisation}
+\label{annexe:standardisation}
+ 
+% Graphiques a produire depuis Mediane_std.xlsx, Mediane_interquartile.xlsx,
+% mediane2.xlsx, moyenne_glissante2.xlsx, Moyenne_glissante8.xlsx (meme maquette
+% que l'indicateur principal), a exporter en PDF dans figures/standardisation/.
+ 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/specificites/mediane_std.pdf}
+% [Graphique : standardisation mediane / ecart type, ponderations publiees]
+\caption{Standardisation à la médiane et à l'écart type (corrélation avec la référence de 1,00, translation de $-0{,}04$)}
+\label{fig:std-mediane-sd}
+\end{figure}
+ 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/specificites/mediane_interquartile.pdf}
+% [Graphique : standardisation mediane / ecart interquartile, ponderations publiees]
+\caption{Standardisation à la médiane et à l'écart interquartile, pondérations publiées (corrélation de 0,92, maximum en 2009-T1)}
+\label{fig:std-mediane-iqr}
+\end{figure}
+ 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/specificites/mediane_restime.pdf}
+% [Graphique : standardisation mediane / ecart interquartile, foret re-estimee (mediane2)]
+\caption{Standardisation à la médiane et à l'écart interquartile, forêt ré-estimée (corrélation de 0,998 avec la version à pondérations publiées, illustration de l'invariance)}
+\label{fig:std-mediane-iqr-rf}
+\end{figure}
+ 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/specificites/moyenne_glissante8.pdf}
+% [Graphique : moyenne glissante, ponderations publiees (Moyenne_glissante8)]
+\caption{Standardisation sur fenêtre glissante, pondérations publiées (corrélation avec la référence de 0,29)}
+\label{fig:std-glissante}
+\end{figure}
+ 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/specificites/moyenne_glissante8_restime.pdf}
+% [Graphique : moyenne glissante, foret re-estimee (moyenne_glissante2)]
+\caption{Standardisation sur fenêtre glissante, forêt ré-estimée (corrélation avec la référence de 0,20)}
+\label{fig:std-glissante-rf}
+\end{figure}
+ 
+\chapter{Tests de robustesse à la séparation de l'échantillon et à l'algorithme}
+\label{annexe:robustesse}
+
+Cette annexe détaille les protocoles résumés dans la section~\ref{sec:robustesse-split}, présente les pondérations obtenues pour chaque variante et reproduit l'indicateur composite reconstruit avec chacune d'elles. Dans tous les cas, le modèle est la forêt aléatoire décrite au chapitre~\ref{chap:methodo}, dont le tableau~\ref{tab:hyper-rf} rappelle les réglages~; seule la composition des jeux d'apprentissage et de test varie. L'échantillon d'estimation couvre 107~trimestres, de 1999-T1 à 2025-T3, dont 25~trimestres de crise répartis en quatre épisodes de la base du CERS \parencite{loduca2017}, de 2002-T3 à 2003-T3, de 2008-T2 à 2009-T4, de 2011-T1 à 2012-T3 et de 2020-T1 à 2021-T2. L'indicateur est ensuite reconstruit sur l'ensemble des z-scores disponibles, de 2009-T1 à 2026-T3, les trois derniers trimestres reposant sur des données partielles.
+
+\begin{table}[htbp]
+\centering
+\caption{Hyperparamètres de la forêt aléatoire de référence}
+\label{tab:hyper-rf}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+Paramètre & Valeur & Justification \\
+\midrule
+Nombre d'arbres (\texttt{num.trees}) & 180 & Stabilité des importances au-delà d'environ 150 arbres \\
+Variables tirées à chaque n\oe ud (\texttt{mtry}) & 4 ($= \lfloor\sqrt{17}\rfloor$) & Défaut de \texttt{ranger} en classification \\
+Taille minimale des feuilles (\texttt{min.node.size}) & 1 & Défaut de \texttt{ranger} en classification \\
+Règle de division (\texttt{splitrule}) & Gini & Défaut de \texttt{ranger} \\
+Échantillonnage (\texttt{replace}, \texttt{sample.fraction}) & avec remise, 1 & Bootstrap classique \parencite{breiman2001} \\
+Profondeur maximale (\texttt{max.depth}) & illimitée & Défaut de \texttt{ranger} \\
+Mesure d'importance & permutation (\emph{out-of-bag}) & Moins biaisée que l'impureté sous corrélation \\
+Séparation apprentissage / test & Bernoulli 70/30 sur 107 trimestres & Voir tests de robustesse \\
+Graine (\texttt{seed}) & 123 & Reproductibilité \\
+\bottomrule
+\end{tabular}}
+\begin{flushleft}\footnotesize
+\emph{Source~:} extraction de l'objet \texttt{ranger} (script \texttt{11.~Export\_LaTeX\_memoire.R}). Les hyperparamètres du modèle XGBoost, calibrés par validation croisée, sont [à insérer, tableau produit par le même script].
+\end{flushleft}
+\end{table}
+ 
+\section{Protocoles}
+
+\paragraph{M0. Réplication du tirage de référence.} Chaque trimestre est affecté au jeu d'apprentissage avec une probabilité de 0,7 par un tirage de Bernoulli indépendant, graine 123. Ce bloc vérifie la reproductibilité du résultat publié. Les pondérations ré-estimées coïncident exactement avec les pondérations publiées et l'indicateur reconstruit avec l'indicateur publié, ce qui valide la chaîne de réplication de bout en bout. Sur ce tirage, le jeu test compte 32~trimestres dont 6 de crise~; l'exactitude est de 93,8~\%, le kappa de 0,82, la sensibilité de 100~\%, la spécificité de 92~\% et l'AUC de 0,99.
+
+\paragraph{M1. Tirage stratifié.} Tirage sans remise imposant exactement 70~\% des trimestres en apprentissage et la même proportion de trimestres de crise dans les deux jeux. Il neutralise le déséquilibre accidentel du tirage de Bernoulli.
+
+\paragraph{M2. Séparation chronologique.} Les 74 premiers trimestres (1999-T1 à 2017-T2) forment le jeu d'apprentissage, les 33 derniers (2017-T3 à 2025-T3) le jeu test, qui contient les six trimestres de l'épisode 2020. Aucune information postérieure à la coupure n'entre dans l'estimation. C'est le protocole conforme à l'usage prospectif d'un indicateur \parencite{tashman2000}.
+
+\paragraph{M3. Séparation chronologique inversée.} Symétrique de M2, les 33 premiers trimestres (1999-T1 à 2007-T1) forment le jeu test, qui contient l'épisode 2002--2003, les 74 derniers le jeu d'apprentissage. Le bloc n'a pas de sens prospectif~; il mesure la dépendance de la hiérarchie des variables à la période d'apprentissage.
+
+\paragraph{M4. Blocs annuels.} Le tirage porte sur des années entières et non sur des trimestres, 19~années sur 27 allant à l'apprentissage. Les années de test sont 1999, 2000, 2002, 2004, 2010, 2019, 2020 et 2024. Ce protocole réduit la fuite d'information entre trimestres adjacents sans renoncer à l'aléa \parencite{roberts2017}.
+
+\paragraph{M5. \emph{Leave-one-crisis-out}.} Pour chacun des quatre épisodes, le jeu test est constitué de l'épisode augmenté d'une marge de quatre trimestres avant et après, le jeu d'apprentissage de tout le reste. La marge joue le rôle de l'embargo recommandé par \textcite{lopezdeprado2018} pour les séries financières. Les pondérations retenues sont la moyenne des quatre estimations, renormalisée. Le bloc répond à la critique selon laquelle le modèle ne ferait que reconnaître la crise de 2008.
+
+\paragraph{M6. Répétition du tirage de référence.} Le tirage de Bernoulli est répété sur 200~graines. On obtient pour chaque variable une distribution empirique de sa pondération et pour chaque métrique une moyenne et un écart type. L'indicateur M6 est construit avec les pondérations moyennes.
+
+\paragraph{M7. Validation croisée à origine glissante.} Le modèle est estimé sur une fenêtre d'apprentissage croissante, testée à chaque étape sur les huit trimestres suivants, la fenêtre étant ensuite étendue, soit six estimations successives au total (\texttt{caret::createTimeSlices}). Ce protocole reproduit la ré-estimation périodique du modèle en usage opérationnel, où l'on réapprend régulièrement sur tout le passé disponible pour surveiller les deux années à venir. Les pondérations retenues sont la moyenne des six fenêtres~; leur corrélation de rang avec les pondérations publiées est de 0,93, la plus élevée des variantes temporelles, et leur écart type entre fenêtres figure au tableau~\ref{tab:robustesse-disp}. La performance de détection est en revanche faible, avec une AUC moyenne de 0,67 et une sensibilité moyenne de 0,34 sur les cinq fenêtres contenant des trimestres de crise, la sixième (2024-T2 à 2025-T3) n'en contenant aucun~; seules la première fenêtre, qui teste l'épisode 2011--2012, et la cinquième, qui teste l'épisode 2020--2021 après l'avoir partiellement vu en apprentissage, reconnaissent la majorité des trimestres de crise.
+
+\paragraph{M8. Échantillon complet, évaluation \emph{out-of-bag}.} La forêt est estimée sur les 107~trimestres. Chaque arbre étant construit sur un échantillon bootstrap qui laisse de côté environ 37~\% des observations, la prédiction \emph{out-of-bag} d'un trimestre n'utilise que les arbres qui ne l'ont pas vu et fournit un estimateur reconnu de l'erreur de généralisation \parencite{breiman2001}. Ce protocole estime les pondérations sur 25~trimestres de crise au lieu de 19.
+
+\paragraph{Variante d'algorithme.} [Les blocs X0 à X4 du script \texttt{10.~Robustesse\_XGBoost.R} remplacent la forêt aléatoire par un \emph{gradient boosting} \parencite{chen2016} sur le tirage de référence, avec importance par gain puis par permutation, hyperparamètres calibrés par validation croisée stratifiée à cinq plis sur le seul jeu d'apprentissage, puis séparation chronologique et estimation sur l'échantillon complet. Résultats à insérer une fois les blocs exécutés.]
+
+\section{Pondérations par variante}
+
+\begin{table}[htbp]
+\centering
+\caption{Pondérations par variable et par variante de séparation}
+\label{tab:robustesse-poids}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lccccccccc}
+\toprule
+Variable & Réf. (= M0) & M1 & M2 & M3 & M4 & M5 & M6 & M7 & M8 \\
+\midrule
+Dette ménages                        & 0,162 & 0,147 & 0,183 & 0,086 & 0,181 & 0,175 & 0,163 & 0,175 & 0,150 \\
+Spread HY                            & 0,154 & 0,132 & 0,130 & 0,154 & 0,191 & 0,106 & 0,128 & 0,110 & 0,113 \\
+Taux de croissance crédits particuliers & 0,102 & 0,071 & 0,075 & 0,057 & 0,058 & 0,077 & 0,077 & 0,077 & 0,092 \\
+Service de la dette ménages          & 0,083 & 0,090 & 0,075 & 0,004 & 0,056 & 0,069 & 0,072 & 0,081 & 0,078 \\
+Service de la dette SNF              & 0,075 & 0,090 & 0,085 & 0,103 & 0,119 & 0,114 & 0,101 & 0,093 & 0,110 \\
+Prix immobiliers / revenus           & 0,074 & 0,056 & 0,077 & 0,047 & 0,031 & 0,081 & 0,079 & 0,097 & 0,086 \\
+Dette SNF                            & 0,074 & 0,100 & 0,113 & 0,081 & 0,087 & 0,115 & 0,106 & 0,102 & 0,104 \\
+Taux de croissance crédits SNF       & 0,053 & 0,072 & 0,044 & 0,053 & 0,045 & 0,068 & 0,067 & 0,059 & 0,062 \\
+Taux crédits nouveaux ménages        & 0,039 & 0,035 & 0,041 & 0,031 & 0,065 & 0,042 & 0,033 & 0,032 & 0,024 \\
+Surévaluation prix immobiliers       & 0,037 & 0,044 & 0,021 & 0,131 & 0,034 & 0,027 & 0,028 & 0,027 & 0,027 \\
+Taux crédits nouveaux SNF            & 0,036 & 0,033 & 0,055 & 0,067 & 0,014 & 0,025 & 0,031 & 0,047 & 0,033 \\
+Conditions d'octroi SNF              & 0,035 & 0,017 & 0,024 & 0,002 & 0,019 & 0,012 & 0,017 & 0,019 & 0,010 \\
+Contraintes de crédit SNF (SAFE)     & 0,026 & 0,012 & 0,022 & 0,079 & 0,008 & 0,017 & 0,016 & 0,017 & 0,021 \\
+Conditions d'octroi ménages          & 0,020 & 0,029 & 0,024 & 0,018 & 0,006 & 0,021 & 0,029 & 0,024 & 0,024 \\
+\emph{Price earning ratio}           & 0,013 & 0,031 & 0,013 & 0,022 & 0,048 & 0,015 & 0,018 & 0,012 & 0,021 \\
+Spread OAT--Bund                     & 0,012 & 0,011 & 0,013 & 0,016 & 0,020 & 0,014 & 0,016 & 0,013 & 0,017 \\
+Prime de CDS                         & 0,005 & 0,031 & 0,006 & 0,048 & 0,019 & 0,023 & 0,019 & 0,016 & 0,026 \\
+\midrule
+\multicolumn{10}{l}{\emph{Par catégorie}} \\
+Encours de dette                     & 0,549 & 0,570 & 0,575 & 0,385 & 0,546 & 0,618 & 0,586 & 0,587 & 0,596 \\
+Financement du crédit                & 0,156 & 0,126 & 0,165 & 0,196 & 0,112 & 0,117 & 0,126 & 0,138 & 0,113 \\
+Financement sur les marchés          & 0,167 & 0,142 & 0,143 & 0,171 & 0,211 & 0,119 & 0,144 & 0,123 & 0,130 \\
+Marché immobilier                    & 0,111 & 0,100 & 0,098 & 0,178 & 0,065 & 0,107 & 0,107 & 0,124 & 0,114 \\
+Valorisation sur les marchés         & 0,018 & 0,062 & 0,018 & 0,070 & 0,067 & 0,039 & 0,037 & 0,028 & 0,047 \\
+\bottomrule
+\end{tabular}
+\begin{flushleft}\footnotesize
+\emph{Note~:} la réplication M0 coïncidant exactement avec les pondérations publiées, les deux sont présentées en une seule colonne. Les variables sont classées par pondération de référence décroissante. \emph{Source~:} calculs de l'auteure.
+\end{flushleft}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Dispersion des pondérations dans les variantes à estimations multiples}
+\label{tab:robustesse-disp}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccccc}
+\toprule
+ & & \multicolumn{2}{c}{M5 (4 épisodes)} & \multicolumn{2}{c}{M6 (200 tirages)} & \multicolumn{2}{c}{M7 (6 fenêtres)} \\
+Variable & Réf. & Moy. & É.-t. & Moy. & É.-t. & Moy. & É.-t. \\
+\midrule
+Dette ménages                        & 0,162 & 0,175 & 0,028 & 0,163 & 0,015 & 0,175 & 0,019 \\
+Spread HY                            & 0,154 & 0,106 & 0,017 & 0,128 & 0,029 & 0,110 & 0,010 \\
+Taux de croissance crédits particuliers & 0,102 & 0,077 & 0,011 & 0,077 & 0,016 & 0,077 & 0,008 \\
+Service de la dette ménages          & 0,083 & 0,069 & 0,008 & 0,072 & 0,016 & 0,081 & 0,020 \\
+Service de la dette SNF              & 0,075 & 0,114 & 0,022 & 0,101 & 0,015 & 0,093 & 0,007 \\
+Prix immobiliers / revenus           & 0,074 & 0,081 & 0,017 & 0,079 & 0,017 & 0,097 & 0,013 \\
+Dette SNF                            & 0,074 & 0,115 & 0,021 & 0,106 & 0,014 & 0,102 & 0,010 \\
+Taux de croissance crédits SNF       & 0,053 & 0,068 & 0,008 & 0,067 & 0,013 & 0,059 & 0,015 \\
+Taux crédits nouveaux ménages        & 0,039 & 0,042 & 0,015 & 0,033 & 0,009 & 0,032 & 0,007 \\
+Surévaluation prix immobiliers       & 0,037 & 0,027 & 0,011 & 0,028 & 0,009 & 0,027 & 0,006 \\
+Taux crédits nouveaux SNF            & 0,036 & 0,025 & 0,006 & 0,031 & 0,009 & 0,047 & 0,014 \\
+Conditions d'octroi SNF              & 0,035 & 0,012 & 0,006 & 0,017 & 0,007 & 0,019 & 0,006 \\
+Contraintes de crédit SNF (SAFE)     & 0,026 & 0,017 & 0,010 & 0,016 & 0,007 & 0,017 & 0,004 \\
+Conditions d'octroi ménages          & 0,020 & 0,021 & 0,002 & 0,029 & 0,012 & 0,024 & 0,009 \\
+\emph{Price earning ratio}           & 0,013 & 0,015 & 0,009 & 0,018 & 0,007 & 0,012 & 0,004 \\
+Spread OAT--Bund                     & 0,012 & 0,014 & 0,008 & 0,016 & 0,006 & 0,013 & 0,004 \\
+Prime de CDS                         & 0,005 & 0,023 & 0,010 & 0,019 & 0,007 & 0,016 & 0,006 \\
+\bottomrule
+\end{tabular}
+\begin{flushleft}\footnotesize
+\emph{Note~:} moyennes et écarts types calculés entre les quatre estimations \emph{leave-one-crisis-out} (M5), les deux cents tirages de Bernoulli (M6) et les six fenêtres à origine glissante (M7). Quatorze des dix-sept pondérations de référence se situent à moins de deux écarts types de la moyenne M6~; les exceptions sont la dette des SNF, la prime de CDS et les conditions d'octroi aux SNF. Aucune pondération n'est nulle dans aucune variante. \emph{Source~:} calculs de l'auteure.
+\end{flushleft}
+\end{table}
+ 
+\section{Performances de classification par variante}
+
+\begin{table}[htbp]
+\centering
+\caption{Performances hors échantillon par variante de séparation}
+\label{tab:robustesse-perf}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccc}
+\toprule
+Variante & $n_{\text{app}}$ & $n_{\text{test}}$ & crises test & Exactitude & Kappa & Sensibilité & Spécificité & AUC \\
+\midrule
+M0 & 75 & 32 & 6 & 0,94 & 0,82 & 1,00 & 0,92 & 0,99 \\
+M1 & 76 & 31 & 7 & 0,94 & 0,79 & 0,71 & 1,00 & 0,91 \\
+M2 & 74 & 33 & 6 & 0,82 & 0,00 & 0,00 & 1,00 & 0,64 \\
+M3 & 74 & 33 & 5 & 0,94 & 0,72 & 0,60 & 1,00 & 0,94 \\
+M4 & 75 & 32 & 6 & 0,81 & 0,45 & 0,67 & 0,85 & 0,74 \\
+M5 (moyenne de 4 épisodes) & 93 & 14 & 6 & 0,53 & $-$0,05 & 0,11 $\pm$ 0,21 & 0,84 & 0,78 $\pm$ 0,20 \\
+M6 (moyenne de 200 tirages) & 75 & 32 & 8 & 0,89 & 0,67 & 0,67 $\pm$ 0,19 & 0,96 & 0,95 $\pm$ 0,04 \\
+M7 (moyenne de 6 fenêtres) & 73 & 34 & 5 & 0,74 & 0,08 & 0,34 $\pm$ 0,46 & 0,80 & 0,67 $\pm$ 0,13 \\
+M8 (\emph{out-of-bag}) & 107 & -- & 25 & 0,90 & 0,70 & 0,72 & 0,95 & 0,95 \\
+\bottomrule
+\end{tabular}}
+\begin{flushleft}\footnotesize
+\emph{Note~:} pour M5, M6 et M7, les effectifs sont des moyennes par estimation et les $\pm$ des écarts types entre estimations. L'exactitude de M2 (0,82) est égale au taux de non-crise du jeu test, le modèle ne prédisant aucune crise sur 2017--2025~; le kappa nul le confirme. Détail de M5 par épisode~: sensibilité de 0,00 pour 2002--2003, 0,43 pour 2008--2009, 0,00 pour 2011--2012 et 0,00 pour 2020--2021~; AUC respectives de 1,00, 0,70, 0,54 et 0,88. Détail de M7 par fenêtre de test~: sensibilité de 0,88, 0,00, 0,00, 0,00 et 0,80, la sixième fenêtre ne contenant aucun trimestre de crise. Sur les 200 tirages de M6, la sensibilité varie de 0,17 à 1,00 et l'AUC de 0,79 à 1,00. \emph{Source~:} calculs de l'auteure, export \texttt{Robustesse\_splits\_simple.xlsx}.
+\end{flushleft}
+\end{table}
+ 
+\section{Indicateur composite selon chaque variante}
+
+Les figures~\ref{fig:rob-ref} à~\ref{fig:rob-m8} reproduisent, pour chaque variante, l'indicateur composite et sa décomposition par catégorie de vulnérabilités, sur le même format que le graphique du chapitre~\ref{chap:resultats}. Les trois derniers trimestres reposent sur des données partielles. Toutes les versions atteignent leur maximum au troisième ou quatrième trimestre 2020 et présentent un second pic à la fin de 2011 et un troisième à la fin de 2022. Les écarts se concentrent sur le niveau des phases calmes (2014--2019 et 2024--2026), où les variantes qui pondèrent davantage l'endettement des SNF se situent au-dessus de la référence. La figure~\ref{fig:rob-toutes} superpose l'ensemble des versions.
+
+% Un bloc figure par version. Fichiers a produire a partir de
+% Résultats/Donnees_RFW_<variante>.xlsx (meme maquette que l'indicateur
+% principal), a exporter en PDF dans figures/robustesse/.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M0.pdf}
+% [Graphique : variante M0]
+\caption{Variante M0, réplication du tirage de référence (corrélation avec la référence de 1,00)}
+\label{fig:rob-m0}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M1.pdf}
+% [Graphique : variante M1]
+\caption{Variante M1, tirage stratifié sur la variable de crise (corrélation avec la référence de 0,97)}
+\label{fig:rob-m1}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M2.pdf}
+% [Graphique : variante M2]
+\caption{Variante M2, séparation chronologique, apprentissage 1999-T1 à 2017-T2 (corrélation avec la référence de 0,96)}
+\label{fig:rob-m2}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M3.pdf}
+% [Graphique : variante M3]
+\caption{Variante M3, séparation chronologique inversée, apprentissage 2007-T2 à 2025-T3 (corrélation avec la référence de 0,84)}
+\label{fig:rob-m3}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M4.pdf}
+% [Graphique : variante M4]
+\caption{Variante M4, tirage par blocs annuels (corrélation avec la référence de 0,96)}
+\label{fig:rob-m4}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M5.pdf}
+% [Graphique : variante M5]
+\caption{Variante M5, \emph{leave-one-crisis-out}, pondérations moyennes sur quatre épisodes (corrélation avec la référence de 0,94)}
+\label{fig:rob-m5}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M6.pdf}
+% [Graphique : variante M6]
+\caption{Variante M6, pondérations moyennes sur 200 tirages (corrélation avec la référence de 0,97)}
+\label{fig:rob-m6}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M7.pdf}
+% [Graphique : variante M7, à produire]
+\caption{Variante M7, validation croisée à origine glissante (corrélation avec la référence de [\ldots])}
+\label{fig:rob-m7}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/M8.pdf}
+% [Graphique : variante M8]
+\caption{Variante M8, estimation sur l'échantillon complet (corrélation avec la référence de 0,96)}
+\label{fig:rob-m8}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/robustesse/indic_superposes.pdf}
+% [Graphique : superposition des neuf versions de l'indicateur, 2009-T1 à 2026-T3,
+%  référence en trait épais, variantes en traits fins]
+\caption{Les neuf versions de l'indicateur composite superposées}
+\label{fig:rob-toutes}
+\end{figure}
+
+\end{appendices}
+
+\end{document}
+
+% ============================================================
+% ENTRÉES À AJOUTER DANS biblio.bib (à vérifier avant compilation)
+% ============================================================
+% @article{roberts2017,
+%   author  = {Roberts, David R. and Bahn, Volker and Ciuti, Simone and Boyce, Mark S. and Elith, Jane and Guillera-Arroita, Gurutzeta and Hauenstein, Severin and Lahoz-Monfort, Jos{\'e} J. and Schr{\"o}der, Boris and Thuiller, Wilfried and Warton, David I. and Wintle, Brendan A. and Hartig, Florian and Dormann, Carsten F.},
+%   title   = {Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure},
+%   journal = {Ecography}, year = {2017}, volume = {40}, number = {8}, pages = {913--929}}
+% @article{tashman2000,
+%   author  = {Tashman, Leonard J.},
+%   title   = {Out-of-sample tests of forecasting accuracy: an analysis and review},
+%   journal = {International Journal of Forecasting}, year = {2000}, volume = {16}, number = {4}, pages = {437--450}}
+% @book{lopezdeprado2018,
+%   author = {L{\'o}pez de Prado, Marcos}, title = {Advances in Financial Machine Learning},
+%   publisher = {Wiley}, year = {2018}}
+% @article{wright2017,
+%   author  = {Wright, Marvin N. and Ziegler, Andreas},
+%   title   = {ranger: A fast implementation of random forests for high dimensional data in {C++} and {R}},
+%   journal = {Journal of Statistical Software}, year = {2017}, volume = {77}, number = {1}, pages = {1--17}}
+% @article{gregorutti2017,
+%   author  = {Gregorutti, Baptiste and Michel, Bertrand and Saint-Pierre, Philippe},
+%   title   = {Correlation and variable importance in random forests},
+%   journal = {Statistics and Computing}, year = {2017}, volume = {27}, number = {3}, pages = {659--678}}
+% @inproceedings{chen2016,
+%   author  = {Chen, Tianqi and Guestrin, Carlos},
+%   title   = {{XGBoost}: A scalable tree boosting system},
+%   booktitle = {Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+%   year = {2016}, pages = {785--794}}
+% @misc{couaillier2018,
+%   author = {Couaillier, Cyril and Idier, Julien},
+%   title  = {Les quatre saisons du cycle financier et le coussin contracyclique},
+%   howpublished = {Bloc-notes {\'E}co, billet n\up{o}~75, Banque de France}, year = {2018}}
+% @techreport{schuler2015,
+%   author = {Sch{\"u}ler, Yves S. and Hiebert, Paul P. and Peltonen, Tuomas A.},
+%   title  = {Characterising the financial cycle: a multivariate and time-varying approach},
+%   institution = {European Central Bank}, type = {Working Paper Series}, number = {1846}, year = {2015}}
+% @techreport{stremmel2015,
+%   author = {Stremmel, Hanno},
+%   title  = {Capturing the financial cycle in Europe},
+%   institution = {European Central Bank}, type = {Working Paper Series}, number = {1811}, year = {2015}}
+% @article{aikman2015,
+%   author  = {Aikman, David and Haldane, Andrew G. and Nelson, Benjamin D.},
+%   title   = {Curbing the credit cycle},
+%   journal = {The Economic Journal}, year = {2015}, volume = {125}, number = {585}, pages = {1072--1109}}
+% @article{runstler2018,
+%   author  = {R{\"u}nstler, Gerhard and Vlekke, Marente},
+%   title   = {Business, housing, and credit cycles},
+%   journal = {Journal of Applied Econometrics}, year = {2018}, volume = {33}, number = {2}, pages = {212--226}}
+% @article{strohsal2019,
+%   author  = {Strohsal, Till and Proa{\~n}o, Christian R. and Wolters, J{\"u}rgen},
+%   title   = {Characterizing the financial cycle: evidence from a frequency domain analysis},
+%   journal = {Journal of Banking \& Finance}, year = {2019}, volume = {106}, pages = {568--591}}
+% Entrée russo2022 à remplacer par celle-ci dans biblio.bib :
+% @article{russo2022,
+%   author  = {Russo, Riccardo},
+%   title   = {Un indicateur du cycle financier en {France} depuis le d{\'e}but des ann{\'e}es 2000},
+%   journal = {Tr{\'e}sor-{\'E}co}, number = {317}, year = {2022}, month = nov,
+%   publisher = {Direction g{\'e}n{\'e}rale du Tr{\'e}sor}}
